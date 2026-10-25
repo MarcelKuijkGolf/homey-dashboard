@@ -10,6 +10,7 @@
 <!-- 25-10-2026 MK pagina ververst zichzelf bij nieuwe versie -->
 <!-- 25-10-2026 MK Niro tegel bewegend tijdens laden, doel en vol om -->
 <!-- 25-10-2026 MK regel batterijsturing -->
+<!-- 25-10-2026 MK grafiek begint altijd bij het huidige uur -->
 <style>
   :root {
     --bg: #0d1117;
@@ -277,7 +278,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-25-06';
+const VERSIE = '2026-10-25-07';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -465,8 +466,15 @@ function maat(svg) {
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Hh);
   return [W, Hh];
 }
-function prijsGrafiek(plan) {
+function prijsGrafiek(planIn) {
   const svg = $('g0');
+  // alleen het huidige uur en later, op de klok van het scherm
+  const n = new Date();
+  const p2 = x => String(x).padStart(2, '0');
+  const nuSleutel = n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-'
+    + p2(n.getDate()) + ' ' + p2(n.getHours()) + ':00';
+  const plan = planIn.filter(p => !p.d
+    || (p.d + ' ' + p.u) >= nuSleutel).slice(0, 24);
   const [W, Hh] = maat(svg);
   if (!plan.length) { svg.innerHTML = ''; return; }
   const links = 40, onder = 22, boven = 22;
