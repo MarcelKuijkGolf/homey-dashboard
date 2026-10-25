@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Energie thuis</title>
 <!-- 24-10-2026 MK Nest Hub dashboard energie en auto -->
-<!-- 24-10-2026 MK tegel binnenklimaat toegevoegd -->
-<!-- 25-10-2026 MK net vandaag i.p.v. besparing, melding geen net -->
+<!-- 25-10-2026 MK saldo dag/maand/jaar, nieuwe grafiek, kopen/verkopen/sparen -->
 <style>
   :root {
     --bg: #0d1117;
@@ -18,9 +17,10 @@
     --laden: #4c8dff;
     --verkopen: #3fb950;
     --eco: #6e7681;
-    --vast: #f0883e;
+    --vast: #d29922;
     --leeg: #da3633;
     --warm: #f0b429;
+    --kopen: #f0883e;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
@@ -73,14 +73,15 @@
   /* nu */
   .nu { grid-area: nu; display: grid; grid-template-columns: 1fr 1fr;
     gap: 10px; padding: 12px; background: transparent; }
-  .mini { background: var(--tile); border-radius: 16px; padding: 12px 14px; }
+  .mini { background: var(--tile); border-radius: 16px; padding: 12px 14px;
+    min-width: 0; }
   .mini b { display: block; font-size: 30px; font-weight: 700;
     margin-top: 4px; white-space: nowrap; }
-  .mini small { color: var(--muted); font-size: 14px; }
+  .mini small { color: var(--muted); font-size: 14px; display: block;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* auto */
-  .auto { grid-area: car; display: flex; flex-direction: column; gap: 10px; }
-  .auto { gap: 8px; }
+  .auto { grid-area: car; display: flex; flex-direction: column; gap: 8px; }
   .auto .soc { font-size: 46px; font-weight: 700; line-height: 1; }
   .bar { height: 12px; background: var(--tile2); border-radius: 99px;
     overflow: hidden; }
@@ -101,15 +102,21 @@
   .kamer small { display: block; color: var(--muted); font-size: 14px; }
   .doel { color: var(--warm); }
 
-  /* grafiek */
+  /* grafieken */
   .chart { grid-area: chart; display: flex; flex-direction: column; }
   .chartkop { display: flex; justify-content: space-between;
-    align-items: baseline; margin-bottom: 6px; }
+    align-items: baseline; margin-bottom: 6px; gap: 10px; }
   .legenda { display: flex; gap: 12px; font-size: 13px;
-    color: var(--muted); }
+    color: var(--muted); white-space: nowrap; margin-left: auto; }
   .legenda i { display: inline-block; width: 10px; height: 10px;
     border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
-  #grafiek { flex: 1; min-height: 0; width: 100%; }
+  .stip { display: flex; gap: 6px; align-self: center; }
+  .stip i { width: 7px; height: 7px; border-radius: 50%;
+    background: var(--line); }
+  .stip i.aan { background: var(--muted); }
+  .grafiek { flex: 1; min-height: 0; width: 100%; display: none; }
+  .grafiek.aan { display: block; }
+
   .alarm { position: fixed; top: 0; left: 0; right: 0; z-index: 5;
     background: var(--leeg); color: #fff; font-weight: 700;
     font-size: 22px; text-align: center; padding: 10px;
@@ -158,14 +165,14 @@
   </div>
 
   <div class="tile nu">
-    <div class="mini"><small>Net</small><b id="net">-</b>
+    <div class="mini"><small id="netlabel">Net</small><b id="net">-</b>
       <small id="netsub"></small></div>
     <div class="mini"><small>Zon</small><b id="zon">-</b>
       <small>opwek nu</small></div>
     <div class="mini"><small>Batterij</small><b id="bpow">-</b>
       <small id="bsub"></small></div>
-    <div class="mini"><small>Van net vandaag</small><b id="netdag">-</b>
-      <small id="netkost"></small></div>
+    <div class="mini"><small id="dagkop">Vandaag</small><b id="dagsaldo">-</b>
+      <small id="dagsub"></small></div>
   </div>
 
   <div class="tile auto">
@@ -196,15 +203,12 @@
 
   <div class="tile chart">
     <div class="chartkop">
-      <div class="label">Stroomprijs en batterijplan</div>
-      <div class="legenda">
-        <span><i style="background:var(--laden)"></i>laden</span>
-        <span><i style="background:var(--verkopen)"></i>verkopen</span>
-        <span><i style="background:var(--eco)"></i>eco</span>
-        <span><i style="background:var(--vast)"></i>vasthouden</span>
-      </div>
+      <div class="label" id="charttitel">Stroomprijs en batterijplan</div>
+      <div class="legenda" id="legenda"></div>
+      <div class="stip"><i id="stip0" class="aan"></i><i id="stip1"></i></div>
     </div>
-    <svg id="grafiek" preserveAspectRatio="none"></svg>
+    <svg id="g0" class="grafiek aan" preserveAspectRatio="none"></svg>
+    <svg id="g1" class="grafiek" preserveAspectRatio="none"></svg>
   </div>
 </div>
 <div class="alarm" id="alarm">Thuisbatterij heeft geen net. Kijk in de meterkast.</div>
@@ -212,19 +216,28 @@
 
 <script>
 // 24-10-2026 MK instellingen komen uit de link: #homey=ID&key=SLEUTEL
+// 25-10-2026 MK ook ?h=ID:SLEUTEL voor casten zonder # en &
 const P = new URLSearchParams(location.hash.slice(1));
-const HOMEY = P.get('homey');
-const KEY = P.get('key');
-const VAR_NAAM = P.get('var') || 'Dashboard data';
+const Q = new URLSearchParams(location.search);
+let HOMEY = P.get('homey') || Q.get('homey');
+let KEY = P.get('key') || Q.get('key');
+const H = Q.get('h') || P.get('h');
+if (H && H.includes(':')) {
+  HOMEY = H.split(':')[0];
+  KEY = H.split(':').slice(1).join(':');
+}
+const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
+const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
-  H: '--vast', X: '--leeg' };
-const NAAM = { L: 'Laden van net', V: 'Verkopen', E: 'Eco',
-  H: 'Vasthouden', X: 'Leeg, huis van net' };
+  H: '--vast', X: '--kopen' };
+const NAAM = { L: 'Inkopen', V: 'Verkopen', E: 'Eco',
+  H: 'Sparen', X: 'Kopen' };
 const css = n => getComputedStyle(document.documentElement)
   .getPropertyValue(n).trim();
-const eur = v => '€ ' + Number(v).toFixed(2).replace('.', ',');
+const eur = v => (v < 0 ? '- ' : '') + '€ '
+  + Math.abs(Number(v)).toFixed(2).replace('.', ',');
 const kw = w => (Math.abs(w) / 1000).toFixed(1).replace('.', ',') + ' kW';
 const $ = id => document.getElementById(id);
 
@@ -241,18 +254,28 @@ setInterval(klok, 10000); klok();
 function demo() {
   const plan = [];
   const nu = new Date(); nu.setMinutes(0, 0, 0);
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 30; i++) {
     const t = new Date(nu.getTime() + i * 3600000);
     const h = t.getHours();
-    let p = 0.17, m = 'E';
+    let p = 0.17 + 0.02 * Math.sin(i / 3), m = 'E';
     if (h >= 12 && h < 15) { p = 0.13; m = 'L'; }
     if (h >= 17 && h < 20) { p = 0.29; m = 'V'; }
     if (h >= 23 || h < 6) { p = 0.14; m = 'H'; }
-    plan.push({ u: String(h).padStart(2, '0') + ':00', p, m });
+    plan.push({ u: String(h).padStart(2, '0') + ':00',
+      d: t.toISOString().substring(0, 10), p, m });
   }
+  const jaar = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep',
+    'okt','nov','dec'].map((m, i) => ({ m,
+      s: i < 10 ? [-62, -41, -12, 18, 46, 61, 58, 44, 12, -9][i] : null,
+      nu: i === 9 }));
   return { t: new Date().toISOString(), soc: 87, bW: 450, sW: 0,
-    gW: -20, m: 'E', advies: 'Eco (€ 0,24) | 23:00 Vasthouden',
-    prijs: 0.24, netKwh: 0.33, netKosten: 0.04, temp: 10.4, niro: 62,
+    gW: -20, m: 'E', advies: 'Eco (€ 0,24) | 23:00 Sparen',
+    prijs: 0.24, temp: 10.4, niro: 62,
+    dag: { kopen: 1.12, verkopen: 0.48, kwhIn: 6.4, kwhUit: 2.1,
+      saldo: -0.64 },
+    maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90,
+      saldo: -8.8 },
+    jaar, jaarNu: String(new Date().getFullYear()), jaarSaldo: 115,
     lader: 'Aangesloten', laadmodus: 'uit', later: false,
     woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
 }
@@ -276,33 +299,51 @@ function teken(d) {
   $('soc').textContent = soc + '%';
   $('ringval').style.strokeDashoffset = 326.7 * (1 - soc / 100);
   $('ringval').style.stroke = soc < 20 ? css('--leeg')
-    : soc < 40 ? css('--vast') : css('--verkopen');
+    : soc < 40 ? css('--kopen') : css('--verkopen');
   const m = d.m || 'E';
   $('chip').textContent = NAAM[m] || m;
   $('chip').style.background = css(KLEUR[m] || '--eco');
   $('chip').style.color = m === 'E' ? '#fff' : '#0d1117';
   const delen = String(d.advies || '').split('|');
   $('volgende').textContent = delen[1] ? 'Daarna ' + delen[1].trim() : '';
-  $('echt').textContent = d.bW > 100 ? 'Ontlaadt nu ' + kw(d.bW)
-    : d.bW < -100 ? 'Laadt nu ' + kw(d.bW) : 'Batterij in rust';
-
-  // nu
   if (d.gW == null) d.gW = 0;
   if (d.bW == null) d.bW = 0;
   if (d.sW == null) d.sW = 0;
-  $('net').textContent = Math.abs(d.gW) < 100 ? 'balans' : kw(d.gW);
-  $('net').style.color = d.gW > 100 ? css('--verkopen')
-    : d.gW < -100 ? css('--vast') : css('--text');
-  $('netsub').textContent = d.gW > 100 ? 'terugleveren'
-    : d.gW < -100 ? 'afnemen' : '';
+  $('echt').textContent = d.bW > 100 ? 'Levert nu ' + kw(d.bW)
+    : d.bW < -100 ? 'Laadt nu ' + kw(d.bW) : 'Batterij in rust';
+
+  // net: kopen of verkopen
+  if (d.gW > 100) {
+    $('netlabel').textContent = 'Verkopen';
+    $('net').textContent = kw(d.gW);
+    $('net').style.color = css('--verkopen');
+    $('netsub').textContent = 'aan het net';
+  } else if (d.gW < -100) {
+    $('netlabel').textContent = 'Kopen';
+    $('net').textContent = kw(d.gW);
+    $('net').style.color = css('--kopen');
+    $('netsub').textContent = 'van het net';
+  } else {
+    $('netlabel').textContent = 'Net';
+    $('net').textContent = 'balans';
+    $('net').style.color = css('--text');
+    $('netsub').textContent = 'geen kopen of verkopen';
+  }
   $('zon').textContent = d.sW > 50 ? kw(d.sW) : '0 kW';
   $('zon').style.color = d.sW > 50 ? css('--warm') : css('--muted');
   $('bpow').textContent = Math.abs(d.bW) < 100 ? 'rust' : kw(d.bW);
-  $('bsub').textContent = d.bW > 100 ? 'ontladen'
+  $('bsub').textContent = d.bW > 100 ? 'levert stroom'
     : d.bW < -100 ? 'laden' : '';
-  $('netdag').textContent = d.netKwh != null
-    ? String(Math.round(d.netKwh * 10) / 10).replace('.', ',') + ' kWh' : '-';
-  $('netkost').textContent = d.netKosten != null ? eur(d.netKosten) : '';
+
+  // vandaag
+  if (d.dag) {
+    const s = d.dag.saldo;
+    $('dagkop').textContent = s >= 0 ? 'Vandaag winst' : 'Vandaag kosten';
+    $('dagsaldo').textContent = eur(Math.abs(s));
+    $('dagsaldo').style.color = s >= 0 ? css('--verkopen') : css('--kopen');
+    $('dagsub').textContent = 'kopen ' + eur(d.dag.kopen)
+      + ' · verkopen ' + eur(d.dag.verkopen);
+  }
   $('alarm').style.display = d.vanNet ? 'block' : 'none';
   $('prijs').textContent = d.prijs != null ? eur(d.prijs) : '-';
   $('temp').textContent = d.temp != null
@@ -311,13 +352,13 @@ function teken(d) {
   // auto
   $('nirosoc').textContent = d.niro != null ? Math.round(d.niro) + '%' : '-';
   $('nirobar').style.width = (d.niro || 0) + '%';
-  $('nirobar').style.background = d.niro < 40 ? css('--vast')
+  $('nirobar').style.background = d.niro < 40 ? css('--kopen')
     : css('--verkopen');
   $('lader').textContent = d.lader || '-';
   $('laadmodus').textContent = d.laadmodus || '-';
   $('vertrek').textContent = d.later ? '07:20' : '06:20';
-  const dag = new Date().getHours() < 7 ? 'vandaag' : 'morgen';
-  $('vertreksub').textContent = 'Warm ' + dag;
+  const dagW = new Date().getHours() < 7 ? 'vandaag' : 'morgen';
+  $('vertreksub').textContent = 'Warm ' + dagW;
 
   // binnen
   const graad = v => v == null ? '-'
@@ -331,50 +372,156 @@ function teken(d) {
   $('bovenrij').style.display = d.boven == null ? 'none' : 'flex';
   $('bovenlijn').style.display = d.boven == null ? 'none' : 'flex';
 
-  grafiek(d.plan || []);
+  grafieken();
   const oud = (Date.now() - new Date(d.t).getTime()) / 60000;
   $('melding').textContent = HOMEY ? (oud > 10
     ? 'Let op: gegevens zijn ' + Math.round(oud) + ' min oud' : '')
     : 'Voorbeeldgegevens';
 }
 
-function grafiek(plan) {
-  const svg = $('grafiek');
-  const W = svg.clientWidth || 800, H = svg.clientHeight || 200;
-  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+// ---------- grafiek 1: prijs per uur met plan ----------
+function maat(svg) {
+  const W = svg.clientWidth || 800;
+  const Hh = svg.clientHeight || 200;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Hh);
+  return [W, Hh];
+}
+function prijsGrafiek(plan) {
+  const svg = $('g0');
+  const [W, Hh] = maat(svg);
   if (!plan.length) { svg.innerHTML = ''; return; }
-  const onder = 22, boven = 18;
-  const max = Math.max(...plan.map(p => p.p)) * 1.08;
-  const min = Math.min(0, ...plan.map(p => p.p));
-  const bw = W / plan.length;
-  const y = v => boven + (H - onder - boven) * (1 - (v - min) / (max - min));
-  let s = '';
+  const links = 40, onder = 22, boven = 22;
+  const pr = plan.map(p => p.p);
+  const max = Math.max(...pr), min = Math.min(...pr);
+  const top = Math.ceil(max * 1.08 * 20) / 20;
+  const bodem = Math.max(0, Math.floor(min * 0.85 * 20) / 20);
+  const bw = (W - links) / plan.length;
+  const y = v => boven + (Hh - onder - boven)
+    * (1 - (v - bodem) / ((top - bodem) || 1));
+  let s = '<defs>';
+  for (const k of Object.keys(KLEUR)) {
+    s += '<linearGradient id="gr' + k + '" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="' + css(KLEUR[k]) + '"/>'
+      + '<stop offset="1" stop-color="' + css(KLEUR[k])
+      + '" stop-opacity="0.2"/></linearGradient>';
+  }
+  s += '</defs>';
+  // rasterlijnen met prijs
+  const stap = (top - bodem) > 0.25 ? 0.1 : 0.05;
+  for (let v = bodem; v <= top + 0.0001; v += stap) {
+    const yy = y(v);
+    s += '<line x1="' + links + '" x2="' + W + '" y1="' + yy + '" y2="'
+      + yy + '" stroke="' + css('--line') + '"/>'
+      + '<text x="' + (links - 6) + '" y="' + (yy + 4) + '" fill="'
+      + css('--muted') + '" font-size="11" text-anchor="end">'
+      + v.toFixed(2).replace('.', ',') + '</text>';
+  }
+  // gemiddelde
+  const gem = pr.reduce((a, b) => a + b, 0) / pr.length;
+  s += '<line x1="' + links + '" x2="' + W + '" y1="' + y(gem) + '" y2="'
+    + y(gem) + '" stroke="' + css('--muted')
+    + '" stroke-dasharray="4 4"/><text x="' + (W - 2) + '" y="'
+    + (y(gem) - 4) + '" fill="' + css('--muted')
+    + '" font-size="11" text-anchor="end">gem '
+    + gem.toFixed(2).replace('.', ',') + '</text>';
+  const iMax = pr.indexOf(max), iMin = pr.indexOf(min);
   plan.forEach((p, i) => {
-    const x = i * bw;
+    const x = links + i * bw;
     const yy = y(p.p);
-    s += '<rect x="' + (x + bw * 0.12) + '" y="' + yy + '" width="'
-      + (bw * 0.76) + '" height="' + (y(min) - yy) + '" rx="3" fill="'
-      + css(KLEUR[p.m] || '--eco') + '"' + (i === 0
-        ? ' stroke="#fff" stroke-width="2"' : '') + '/>';
+    s += '<rect x="' + (x + bw * 0.14) + '" y="' + yy + '" width="'
+      + (bw * 0.72) + '" height="' + Math.max(2, y(bodem) - yy)
+      + '" rx="4" fill="url(#gr' + (KLEUR[p.m] ? p.m : 'E') + ')"/>';
+    if (i > 0 && p.u === '00:00') {
+      s += '<line x1="' + x + '" x2="' + x + '" y1="' + (boven - 6)
+        + '" y2="' + (Hh - onder) + '" stroke="' + css('--muted')
+        + '" stroke-dasharray="2 4"/><text x="' + (x + 4) + '" y="'
+        + (boven - 8) + '" fill="' + css('--muted')
+        + '" font-size="11">morgen</text>';
+    }
     if (i % 3 === 0) {
-      s += '<text x="' + Math.max(16, x + bw / 2) + '" y="' + (H - 4)
-        + '" fill="' + css('--muted') + '" font-size="12"'
-        + ' text-anchor="middle">' + p.u + '</text>';
+      s += '<text x="' + (x + bw / 2) + '" y="' + (Hh - 5) + '" fill="'
+        + css('--muted') + '" font-size="12" text-anchor="middle">'
+        + p.u + '</text>';
+    }
+    if (i === iMax || i === iMin) {
+      s += '<text x="' + (x + bw / 2) + '" y="' + (yy - 5) + '" fill="'
+        + css('--text') + '" font-size="12" font-weight="700"'
+        + ' text-anchor="middle">' + p.p.toFixed(2).replace('.', ',')
+        + '</text>';
     }
   });
-  // hoogste en laagste prijs labelen
-  const iMax = plan.findIndex(p => p.p === Math.max(...plan.map(q => q.p)));
-  const iMin = plan.findIndex(p => p.p === Math.min(...plan.map(q => q.p)));
-  for (const i of [iMax, iMin]) {
-    s += '<text x="' + (i * bw + bw / 2) + '" y="' + (y(plan[i].p) - 5)
-      + '" fill="' + css('--text') + '" font-size="12"'
-      + ' text-anchor="middle">' + eur(plan[i].p).replace('€ ', '')
-      + '</text>';
-  }
+  // nu-markering binnen het eerste uur
+  const xn = links + bw * (new Date().getMinutes() / 60);
+  s += '<line x1="' + xn + '" x2="' + xn + '" y1="' + (boven - 6)
+    + '" y2="' + (Hh - onder) + '" stroke="#fff" stroke-width="2"/>'
+    + '<text x="' + (xn + 4) + '" y="' + (boven - 8)
+    + '" fill="#fff" font-size="11" font-weight="700">nu</text>';
   svg.innerHTML = s;
 }
 
+// ---------- grafiek 2: kosten en winst per maand ----------
+function saldoGrafiek(d) {
+  const svg = $('g1');
+  const [W, Hh] = maat(svg);
+  const j = d.jaar || [];
+  if (!j.length) { svg.innerHTML = ''; return; }
+  const onder = 22, boven = 18;
+  const ext = Math.max(10, ...j.map(x => Math.abs(x.s || 0))) * 1.2;
+  const y0 = boven + (Hh - onder - boven) / 2;
+  const sc = (Hh - onder - boven) / 2 / ext;
+  const bw = W / j.length;
+  let s = '<line x1="0" x2="' + W + '" y1="' + y0 + '" y2="' + y0
+    + '" stroke="' + css('--line') + '"/>';
+  j.forEach((x, i) => {
+    const cx = i * bw + bw / 2;
+    if (x.s != null) {
+      const h = Math.max(2, Math.abs(x.s) * sc);
+      const yy = x.s >= 0 ? y0 - h : y0;
+      s += '<rect x="' + (i * bw + bw * 0.18) + '" y="' + yy + '" width="'
+        + (bw * 0.64) + '" height="' + h + '" rx="4" fill="'
+        + css(x.s >= 0 ? '--verkopen' : '--kopen') + '" opacity="'
+        + (x.nu ? 1 : 0.8) + '"' + (x.nu
+          ? ' stroke="#fff" stroke-width="2"' : '') + '/>';
+      const ty = x.s >= 0 ? yy - 5 : yy + h + 13;
+      s += '<text x="' + cx + '" y="' + ty + '" fill="' + css('--text')
+        + '" font-size="12" text-anchor="middle">'
+        + (x.s >= 0 ? '+' : '-') + Math.round(Math.abs(x.s)) + '</text>';
+    }
+    s += '<text x="' + cx + '" y="' + (Hh - 5) + '" fill="'
+      + css(x.nu ? '--text' : '--muted') + '" font-size="12"'
+      + ' text-anchor="middle"' + (x.nu ? ' font-weight="700"' : '')
+      + '>' + x.m + '</text>';
+  });
+  svg.innerHTML = s;
+}
+
+// ---------- wisselen tussen de grafieken ----------
+let scherm = 0;
 let laatste = null;
+function grafieken() {
+  $('g0').classList.toggle('aan', scherm === 0);
+  $('g1').classList.toggle('aan', scherm === 1);
+  $('stip0').classList.toggle('aan', scherm === 0);
+  $('stip1').classList.toggle('aan', scherm === 1);
+  const d = laatste || {};
+  if (scherm === 0) {
+    $('charttitel').textContent = 'Stroomprijs en batterijplan';
+    $('legenda').innerHTML = ['L', 'V', 'E', 'H'].map(k =>
+      '<span><i style="background:var(' + KLEUR[k] + ')"></i>'
+      + NAAM[k].toLowerCase() + '</span>').join('');
+    prijsGrafiek(d.plan || []);
+  } else {
+    $('charttitel').textContent = 'Kosten en winst ' + (d.jaarNu || '');
+    $('legenda').innerHTML = 'deze maand <b style="color:var('
+      + ((d.maand && d.maand.saldo >= 0) ? '--verkopen' : '--kopen')
+      + ')">&nbsp;' + (d.maand ? eur(d.maand.saldo) : '-')
+      + '</b>&nbsp;&nbsp;dit jaar <b style="color:var('
+      + (d.jaarSaldo >= 0 ? '--verkopen' : '--kopen') + ')">&nbsp;'
+      + (d.jaarSaldo != null ? eur(d.jaarSaldo) : '-') + '</b>';
+    saldoGrafiek(d);
+  }
+}
+
 async function ververs() {
   try {
     laatste = await haal();
@@ -383,6 +530,7 @@ async function ververs() {
     $('melding').textContent = 'Geen verbinding: ' + e.message;
   }
 }
+setInterval(() => { scherm = 1 - scherm; grafieken(); }, WISSEL_MS);
 window.addEventListener('resize', () => laatste && teken(laatste));
 ververs();
 setInterval(ververs, VERVERS_MS);
