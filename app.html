@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<!-- 25-10-2026 MK energie app voor mobiel, zelfde gegevens als het Nest dashboard -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0e22">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Energie">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Energie thuis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Indeling zoals de examencijfers app: zijbalk op groot scherm, tabbalk onderin op de telefoon. Nachthemel thema. */
+:root{
+  color-scheme:dark;
+  --bg:#0b0e22; --paper:#151938; --paper2:#1c2150; --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --ink:#eef0ff; --muted:#a3a8d0; --dim:#6f75a3;
+  --accent:#ffa23a; --accent2:#ff7a2a;
+  --laden:#5b8cff; --verkopen:#4ade9b; --eco:#8a90b8; --vast:#ffcc5c; --kopen:#ff9a4a; --leeg:#ff6b7a; --warm:#ffcc5c;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  background-image:radial-gradient(900px 620px at 8% -12%,rgba(124,58,237,.38),transparent 62%),radial-gradient(760px 520px at 105% 108%,rgba(255,130,40,.16),transparent 60%);
+  background-attachment:fixed;-webkit-tap-highlight-color:transparent}
+h1,h2,h3{font-family:var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:clamp(1.6rem,4vw,2.3rem);font-weight:800}
+h2{font-size:1.15rem;font-weight:700}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .small{font-size:.86rem}
+button{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line2);background:rgba(255,255,255,.05);color:var(--ink);padding:8px 14px;cursor:pointer}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#24120a}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input{font:inherit;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;width:100%}
+
+/* app indeling */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;padding:22px 14px;border-right:1px solid var(--line);background:rgba(10,12,32,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:18px}
+.merk{display:flex;align-items:center;gap:12px;padding:4px 8px}
+.merk img{width:42px;height:42px;border-radius:12px;box-shadow:0 6px 22px rgba(139,92,246,.45)}
+.merk b{font-family:var(--f-display);font-size:1.12rem;font-weight:800;display:block;line-height:1.1}
+.merk small{color:var(--muted);font-size:.75rem}
+.nav{display:grid;gap:4px}
+.nav a{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;color:var(--muted);font-weight:700;text-decoration:none}
+.nav a:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+.ico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.05);border:1px solid var(--line);transition:all .2s}
+.ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav a.actief{color:var(--ink);background:rgba(255,255,255,.06)}
+.nav a.actief .ico,.tabbar a.actief .ico{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#24120a;border-color:transparent;box-shadow:0 0 22px rgba(255,140,50,.5)}
+.side .voet{margin-top:auto;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:.8rem;color:var(--muted)}
+main{min-width:0}
+.content{max-width:980px;margin:0 auto;padding-block:26px 70px;padding-left:max(24px, env(safe-area-inset-left, 0px));padding-right:max(24px, env(safe-area-inset-right, 0px));display:grid;gap:20px}
+.view{display:grid;gap:18px;animation:in .35s ease}
+@keyframes in{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+.vkop{display:flex;justify-content:space-between;align-items:end;gap:12px}
+.vkop p{margin:2px 0 0;color:var(--muted)}
+.ververs{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.8rem;white-space:nowrap}
+.ververs button{padding:6px 10px;border-radius:999px}
+.ververs svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;vertical-align:-3px}
+.draait svg{animation:draai 1s linear infinite}
+@keyframes draai{to{transform:rotate(360deg)}}
+.tabbar{display:none}
+
+/* panelen */
+.paneel{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:20px;padding:18px;display:grid;gap:12px}
+.paneel-kop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.paneel-kop a{font-weight:700;text-decoration:none;font-size:.88rem;color:var(--accent)}
+
+/* hero met batterij */
+.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:center;padding:24px;border-radius:26px;
+  background:linear-gradient(135deg,#21195a 0%,#38206f 50%,#6a2a7c 100%);border:1px solid rgba(255,255,255,.14);box-shadow:0 20px 60px rgba(60,20,120,.45)}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 220px at 85% 0%,rgba(255,162,58,.28),transparent 70%);pointer-events:none}
+.hero-tekst{position:relative;display:grid;gap:6px;min-width:0}
+.chip{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-family:var(--f-display);font-weight:800;font-size:1.25rem}
+.hero .regel{color:#d9d4f5;font-size:.92rem;margin:0}
+.hero .sturing{display:flex;align-items:center;gap:8px;font-size:.84rem;color:#d6cff5;margin-top:4px}
+.punt{width:8px;height:8px;border-radius:50%;background:var(--verkopen);flex:none;box-shadow:0 0 10px currentColor}
+.ring{position:relative;width:150px;height:150px;flex:none}
+.ring svg{width:150px;height:150px;transform:rotate(-90deg);overflow:visible}
+.ring .midden{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .midden b{font-family:var(--f-display);font-size:2.3rem;font-weight:800;line-height:1}
+.ring .midden span{font-size:.7rem;color:#d6cff5;letter-spacing:.06em;text-transform:uppercase}
+#stroom{display:none}
+.laadt #stroom,.levert #stroom,.verkoopt #stroom{display:block;animation:golfring 1.8s linear infinite}
+.levert #stroom,.verkoopt #stroom{animation-direction:reverse}
+.levert #stroom{animation-duration:3s}
+@keyframes golfring{from{stroke-dashoffset:0}to{stroke-dashoffset:-326.7}}
+.laadt #ringval,.verkoopt #ringval{filter:drop-shadow(0 0 6px currentColor)}
+
+.alarmkaart{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:rgba(255,107,122,.15);border:1px solid rgba(255,107,122,.55);font-weight:700}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:grid;gap:2px;min-width:0;text-decoration:none;color:var(--ink)}
+.stat .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.stat .v{font-family:var(--f-display);font-size:1.75rem;font-weight:800;line-height:1.15;white-space:nowrap}
+.stat .s{font-size:.8rem;color:var(--dim)}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+
+/* blokken van het plan */
+.blokken{display:grid;gap:8px}
+.blok{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--paper);border:1px solid var(--line)}
+.blok .kl{width:10px;height:34px;border-radius:6px}
+.blok b{font-family:var(--f-display);font-size:1rem}
+.blok small{display:block;color:var(--muted);font-size:.8rem}
+.blok .num{font-size:.85rem;color:var(--muted);text-align:right}
+.blok.nu{border-color:rgba(255,162,58,.55);background:linear-gradient(90deg,rgba(255,162,58,.12),var(--paper))}
+
+/* grafieken */
+.grafiek{width:100%;height:220px;display:block}
+.legenda{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--muted)}
+.legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* auto */
+.autokaart{display:grid;gap:14px}
+.autokop{display:flex;justify-content:space-between;align-items:end;gap:12px}
+.autokop .soc{font-family:var(--f-display);font-size:3.4rem;font-weight:800;line-height:1}
+.bliksem{display:none;color:var(--warm);font-size:.55em;vertical-align:.4em;margin-left:6px;animation:puls 1.2s ease-in-out infinite}
+.laadt .bliksem{display:inline}
+@keyframes puls{0%,100%{opacity:1}50%{opacity:.3}}
+.bar{position:relative;height:16px;background:rgba(255,255,255,.07);border-radius:99px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--verkopen);position:relative;overflow:hidden;transition:width 1s ease}
+.laadt .bar i{box-shadow:0 0 12px var(--verkopen)}
+.laadt .bar i::after{content:'';position:absolute;inset:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:golf 1.6s linear infinite}
+@keyframes golf{from{transform:translateX(-100%)}to{transform:translateX(300%)}}
+.doelstreep{position:absolute;top:-5px;bottom:-5px;width:3px;border-radius:2px;background:#fff;opacity:.8;display:none}
+.doeltekst{position:absolute;top:22px;transform:translateX(-50%);font-size:.72rem;color:var(--muted);white-space:nowrap;display:none}
+.rijen{display:grid}
+.rij{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.rij span:first-child{color:var(--muted)}
+.rij b{font-weight:700;text-align:right}
+.autolaad{color:var(--verkopen);font-weight:700;display:none}
+.laadt .autolaad{display:block}
+
+/* geld */
+.geld{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.geld .stat .v{font-size:1.6rem}
+
+/* binnen */
+.kamers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kamer .v{font-size:2.3rem}
+
+/* koppelen */
+.koppel{max-width:520px;margin:8vh auto;padding:0 20px;display:grid;gap:16px}
+.koppel img{width:76px;height:76px;border-radius:20px;box-shadow:0 10px 30px rgba(139,92,246,.5)}
+.koppel ol{margin:0;padding-left:20px;color:var(--muted)}
+.fout{color:var(--leeg);font-weight:700;min-height:1.2em}
+
+.melding{font-size:.8rem;color:var(--muted);text-align:center}
+
+@media (max-width:980px){
+  .app{grid-template-columns:76px minmax(0,1fr)}
+  .side{padding:18px 10px;align-items:center}
+  .merk b,.merk small,.nav a span.t,.side .voet{display:none}
+  .nav a{padding:6px}
+}
+@media (max-width:760px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .duo,.geld{grid-template-columns:minmax(0,1fr)}
+  .kamers{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .app{display:block}
+  .side{display:none}
+  .content{padding-top:calc(16px + env(safe-area-inset-top, 0px));padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));gap:16px}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));background:rgba(12,14,36,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+  .tabbar a{display:grid;justify-items:center;gap:3px;text-decoration:none;color:var(--muted);font-size:.68rem;font-weight:700}
+  .tabbar .ico{width:40px;height:32px;border-radius:12px;background:none;border:0}
+  .tabbar a.actief{color:var(--ink)}
+  .hero{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;padding:22px 18px}
+  .hero-tekst{justify-items:center}
+  .chip{justify-self:center}
+  .ring,.ring svg{width:170px;height:170px}
+  .ring .midden b{font-size:2.6rem}
+  .stat .v{font-size:1.5rem}
+  .paneel{padding:16px}
+  .grafiek{height:200px}
+}
+@media (prefers-reduced-motion:reduce){.view{animation:none}#stroom,.bar i::after,.bliksem{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-nu" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><path d="M5 17h14v-5l-2-5H7l-2 5zM5 12h14"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/></symbol>
+  <symbol id="i-geld" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5a3 3 0 0 0-5 0c-1 2 1 3 2 3s3 1 2 3a3 3 0 0 1-5 0M12 6v2M12 16v2"/></symbol>
+  <symbol id="i-huis" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></symbol>
+  <symbol id="i-ververs" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></symbol>
+</svg>
+
+<!-- koppelen -->
+<div class="koppel" id="koppel" hidden>
+  <img src="icon-192.png" alt="">
+  <div><div class="eyebrow">Energie thuis</div><h1>Koppel je Homey</h1></div>
+  <p class="muted" style="margin:0">Plak de link van het Nest dashboard. Daar staan je Homey ID en de alleen lezen sleutel in. De app onthoudt ze op deze telefoon.</p>
+  <input id="koppelLink" placeholder="https://...homey-dashboard/#homey=...&amp;key=..." autocomplete="off" autocapitalize="off" spellcheck="false">
+  <div class="fout" id="koppelFout"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="primary" id="koppelKnop">Koppelen</button>
+    <button id="demoKnop">Voorbeeld bekijken</button>
+  </div>
+  <ol class="small">
+    <li>Open deze pagina in Safari met je dashboardlink erachter, dan koppelt hij vanzelf.</li>
+    <li>Kies Deel en dan Zet op beginscherm.</li>
+    <li>Vraagt de app op het beginscherm opnieuw om de link, plak hem dan hier.</li>
+  </ol>
+</div>
+
+<div class="app" id="app" hidden>
+  <aside class="side">
+    <div class="merk"><img src="icon-192.png" alt=""><div><b>Energie</b><small>Golfresidentie 49</small></div></div>
+    <nav class="nav" aria-label="Menu">
+      <a href="#nu" data-nav="nu"><span class="ico"><svg><use href="#i-nu"/></svg></span><span class="t">Nu</span></a>
+      <a href="#plan" data-nav="plan"><span class="ico"><svg><use href="#i-plan"/></svg></span><span class="t">Plan</span></a>
+      <a href="#auto" data-nav="auto"><span class="ico"><svg><use href="#i-auto"/></svg></span><span class="t">Niro</span></a>
+      <a href="#geld" data-nav="geld"><span class="ico"><svg><use href="#i-geld"/></svg></span><span class="t">Geld</span></a>
+      <a href="#huis" data-nav="huis"><span class="ico"><svg><use href="#i-huis"/></svg></span><span class="t">Huis</span></a>
+    </nav>
+    <div class="voet" id="zijVoet">-</div>
+  </aside>
+
+  <main><div class="content">
+
+    <!-- NU -->
+    <section class="view" data-view="nu">
+      <div class="vkop">
+        <div><div class="eyebrow" id="datum">-</div><h1 id="groet">Energie thuis</h1></div>
+        <div class="ververs"><span id="leeftijd"></span><button class="vknop" aria-label="Verversen"><svg><use href="#i-ververs"/></svg></button></div>
+      </div>
+      <div class="alarmkaart" id="alarm" hidden>Thuisbatterij heeft geen net. Kijk in de meterkast bij groep Thuisbatterij.</div>
+      <div class="hero">
+        <div class="ring" id="ring">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12"/>
+            <defs><mask id="vulmask"><circle id="maskval" cx="60" cy="60" r="52" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></mask></defs>
+            <circle id="ringval" cx="60" cy="60" r="52" fill="none" stroke="#4ade9b" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+            <circle id="stroom" cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="12" stroke-linecap="round" stroke-dasharray="45 281.7" mask="url(#vulmask)"/>
+          </svg>
+          <div class="midden"><b id="soc">-</b><span>thuisbatterij</span></div>
+        </div>
+        <div class="hero-tekst">
+          <div class="eyebrow" style="color:#d6cff5">Plan nu</div>
+          <div class="chip" id="chip">-</div>
+          <p class="regel" id="echt"></p>
+          <p class="regel" id="volgende"></p>
+          <div class="sturing"><span class="punt" id="sturingPunt"></span><span id="sturing"></span></div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="k" id="netK">Net</span><span class="v" id="net">-</span><span class="s" id="netS"></span></div>
+        <div class="stat"><span class="k">Zon</span><span class="v" id="zon">-</span><span class="s">opwek nu</span></div>
+        <div class="stat"><span class="k">Stroom nu</span><span class="v" id="prijs">-</span><span class="s" id="prijsS">per kWh</span></div>
+        <a class="stat" href="#geld"><span class="k" id="dagK">Vandaag</span><span class="v" id="dag">-</span><span class="s" id="dagS"></span></a>
+      </div>
+      <div class="duo">
+        <div class="paneel">
+          <div class="paneel-kop"><h2>Komende uren</h2><a href="#plan">Hele plan</a></div>
+          <div class="blokken" id="blokkenKort"></div>
+        </div>
+        <a class="paneel" href="#auto" style="text-decoration:none;color:inherit">
+          <div class="paneel-kop"><h2>Niro</h2><span class="muted small" id="niroKortStatus"></span></div>
+          <div class="autokaart" id="niroKort">
+            <div class="autokop"><div class="soc" style="font-size:2.4rem"><span id="niroKortSoc">-</span><span class="bliksem">&#9889;</span></div><span class="muted small" id="niroKortDoel"></span></div>
+            <div class="bar"><i id="niroKortBar" style="width:0"></i></div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- PLAN -->
+    <section class="view" data-view="plan" hidden>
+      <div class="vkop"><div><div class="eyebrow">Batterijplan</div><h1>Plan en prijzen</h1><p id="planSub"></p></div></div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2>Stroomprijs per uur</h2><span class="muted small" id="gemPrijs"></span></div>
+        <svg class="grafiek" id="prijsGrafiek" preserveAspectRatio="none"></svg>
+        <div class="legenda" id="legenda"></div>
+      </div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2>Blokken</h2><span class="muted small">wat de batterij gaat doen</span></div>
+        <div class="blokken" id="blokken"></div>
+      </div>
+    </section>
+
+    <!-- AUTO -->
+    <section class="view" data-view="auto" hidden>
+      <div class="vkop"><div><div class="eyebrow">Kia Niro</div><h1>Auto</h1></div></div>
+      <div class="paneel autokaart" id="auto">
+        <div class="autokop">
+          <div class="soc"><span id="niroSoc">-</span><span class="bliksem">&#9889;</span></div>
+          <div class="muted" id="lader">-</div>
+        </div>
+        <div class="bar"><i id="niroBar" style="width:0"></i><span class="doelstreep" id="niroDoel"></span><span class="doeltekst" id="niroDoelT"></span></div>
+        <div style="height:10px"></div>
+        <div class="autolaad" id="autolaad"></div>
+        <div class="rijen">
+          <div class="rij"><span>Laaddoel</span><b id="laaddoel">-</b></div>
+          <div class="rij"><span>Laadmodus</span><b id="laadmodus">-</b></div>
+          <div class="rij"><span id="vertrekK">Auto warm om</span><b id="vertrek">-</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GELD -->
+    <section class="view" data-view="geld" hidden>
+      <div class="vkop"><div><div class="eyebrow">Kosten en opbrengst</div><h1>Geld</h1></div></div>
+      <div class="geld">
+        <div class="stat"><span class="k" id="gDagK">Vandaag</span><span class="v" id="gDag">-</span><span class="s" id="gDagS"></span><span class="s" id="gDagK2"></span></div>
+        <div class="stat"><span class="k" id="gMaandK">Deze maand</span><span class="v" id="gMaand">-</span><span class="s" id="gMaandS"></span><span class="s" id="gMaandK2"></span></div>
+        <div class="stat"><span class="k" id="gJaarK">Dit jaar</span><span class="v" id="gJaar">-</span><span class="s">verkopen min kopen, hele jaar</span></div>
+      </div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2 id="maandTitel">Per maand</h2><span class="muted small">+ winst, - kosten</span></div>
+        <svg class="grafiek" id="maandGrafiek" preserveAspectRatio="none"></svg>
+      </div>
+    </section>
+
+    <!-- HUIS -->
+    <section class="view" data-view="huis" hidden>
+      <div class="vkop"><div><div class="eyebrow">Binnen en buiten</div><h1>Huis</h1></div></div>
+      <div class="kamers">
+        <div class="stat kamer"><span class="k">Woonkamer</span><span class="v" id="woon">-</span><span class="s" id="woonS"></span></div>
+        <div class="stat kamer" id="bovenKaart"><span class="k">Boven</span><span class="v" id="boven">-</span><span class="s">hal boven</span></div>
+        <div class="stat kamer"><span class="k">Buiten</span><span class="v" id="buiten">-</span><span class="s">Dronten</span></div>
+      </div>
+      <div class="paneel">
+        <h2>Systeem</h2>
+        <div class="rijen">
+          <div class="rij"><span>Batterijsturing</span><b id="hSturing">-</b></div>
+          <div class="rij"><span>Omvormer</span><b id="hOmvormer">-</b></div>
+          <div class="rij"><span>Gegevens van</span><b id="hTijd">-</b></div>
+          <div class="rij"><span>Versie app</span><b id="hVersie">-</b></div>
+        </div>
+        <div><button id="ontkoppel">Ontkoppelen van deze telefoon</button></div>
+      </div>
+    </section>
+
+    <div class="melding" id="melding"></div>
+  </div></main>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="Menu" hidden>
+  <a href="#nu" data-nav="nu"><span class="ico"><svg><use href="#i-nu"/></svg></span>Nu</a>
+  <a href="#plan" data-nav="plan"><span class="ico"><svg><use href="#i-plan"/></svg></span>Plan</a>
+  <a href="#auto" data-nav="auto"><span class="ico"><svg><use href="#i-auto"/></svg></span>Niro</a>
+  <a href="#geld" data-nav="geld"><span class="ico"><svg><use href="#i-geld"/></svg></span>Geld</a>
+  <a href="#huis" data-nav="huis"><span class="ico"><svg><use href="#i-huis"/></svg></span>Huis</a>
+</nav>
+
+<script>
+// 25-10-2026 MK versie, ophogen bij elke wijziging
+const VERSIE = '2026-10-25-a1';
+const VAR_NAAM = 'Dashboard data';
+const VERVERS_MS = 60000;
+const OPSLAG = 'energie_koppeling';
+
+const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco', H: '--vast', X: '--kopen' };
+const NAAM = { L: 'Inkopen', V: 'Verkopen', E: 'Eco', H: 'Sparen', X: 'Kopen' };
+const UITLEG = { L: 'laden van het net', V: 'stroom verkopen', E: 'batterij voedt het huis', H: 'batterij vasthouden', X: 'huis koopt van het net' };
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const eur = v => (v < 0 ? '- ' : '') + '€ ' + Math.abs(Number(v)).toFixed(2).replace('.', ',');
+const kw = w => (Math.abs(w) / 1000).toFixed(1).replace('.', ',') + ' kW';
+const graad = v => v == null ? '-' : String(Math.round(v * 10) / 10).replace('.', ',') + '°';
+const tijd = d => d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+// ---------- koppeling ----------
+function leesLink(tekst) {
+  const s = String(tekst || '');
+  const hash = s.includes('#') ? s.split('#')[1] : '';
+  const zoek = s.includes('?') ? s.split('?')[1].split('#')[0] : '';
+  const P = new URLSearchParams(hash), Q = new URLSearchParams(zoek);
+  let homey = P.get('homey') || Q.get('homey');
+  let key = P.get('key') || Q.get('key');
+  const h = Q.get('h') || P.get('h');
+  if (h && h.includes(':')) { homey = h.split(':')[0]; key = h.split(':').slice(1).join(':'); }
+  return homey && key ? { homey, key } : null;
+}
+function bewaar(k) { try { localStorage.setItem(OPSLAG, JSON.stringify(k)); } catch (e) { /* geen opslag */ } }
+function laadKoppeling() { try { return JSON.parse(localStorage.getItem(OPSLAG) || 'null'); } catch (e) { return null; } }
+
+let koppeling = leesLink(location.href);
+if (koppeling) {
+  bewaar(koppeling);
+  // sleutel uit de adresbalk halen
+  history.replaceState(null, '', location.pathname + '#nu');
+} else {
+  koppeling = laadKoppeling();
+}
+let demoModus = false;
+
+// ---------- navigatie ----------
+const VIEWS = ['nu', 'plan', 'auto', 'geld', 'huis'];
+function toon() {
+  let v = location.hash.slice(1);
+  if (!VIEWS.includes(v)) v = 'nu';
+  document.querySelectorAll('[data-view]').forEach(s => { s.hidden = s.dataset.view !== v; });
+  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('actief', a.dataset.nav === v));
+  if (laatste) tekenGrafieken();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', toon);
+
+// ---------- gegevens ----------
+function demo() {
+  const plan = [];
+  const nu = new Date(); nu.setMinutes(0, 0, 0);
+  for (let i = 0; i < 30; i++) {
+    const t = new Date(nu.getTime() + i * 3600000);
+    const h = t.getHours();
+    let p = 0.22 + 0.03 * Math.sin(i / 3), m = 'E';
+    if (h >= 12 && h < 15) { p = 0.16; m = 'L'; }
+    if (h >= 17 && h < 20) { p = 0.31; m = 'V'; }
+    if (h >= 2 && h < 5) { p = 0.18; m = 'H'; }
+    const p2 = x => String(x).padStart(2, '0');
+    plan.push({ u: p2(h) + ':00', d: t.getFullYear() + '-' + p2(t.getMonth() + 1) + '-' + p2(t.getDate()), p, m });
+  }
+  const jaar = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'].map((m, i) => ({ m,
+    s: i < 10 ? [-62, -41, -12, 18, 46, 61, 58, 44, 12, -9][i] : null, nu: i === 9 }));
+  return { t: new Date().toISOString(), soc: 72, bW: -6060, sW: 0, gW: -6500, m: 'L',
+    advies: 'Inkopen (€ 0,16) | 15:00 Eco', sturing: true, sturingTekst: 'Inkopen 12:00-15:00 tot 94%',
+    prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
+    maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
+    jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', laadmodus: 'prijs', laaddoel: 100,
+    autoW: 10800, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
+}
+async function haal() {
+  if (demoModus || !koppeling) return demo();
+  const url = 'https://' + koppeling.homey + '.connect.athom.com/api/manager/logic/variable/';
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + koppeling.key }, cache: 'no-store' });
+  if (r.status === 401 || r.status === 403) throw new Error('sleutel geweigerd, koppel opnieuw');
+  if (!r.ok) throw new Error('Homey ' + r.status);
+  const vars = await r.json();
+  const v = Object.values(vars).find(x => x.name === VAR_NAAM);
+  if (!v) throw new Error('variabele "' + VAR_NAAM + '" niet gevonden');
+  return JSON.parse(v.value);
+}
+
+// plan per uur groeperen tot blokken van dezelfde modus
+function blokken(plan) {
+  const n = new Date();
+  const p2 = x => String(x).padStart(2, '0');
+  const nuS = n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-' + p2(n.getDate()) + ' ' + p2(n.getHours()) + ':00';
+  const rest = (plan || []).filter(p => !p.d || (p.d + ' ' + p.u) >= nuS);
+  const uit = [];
+  for (const p of rest) {
+    const l = uit[uit.length - 1];
+    if (l && l.m === p.m) { l.tot = p; l.pr.push(p.p); }
+    else uit.push({ m: p.m, d: p.d, van: p, tot: p, pr: [p.p] });
+  }
+  return uit;
+}
+function vandaagS() { const n = new Date(), p2 = x => String(x).padStart(2, '0');
+  return n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-' + p2(n.getDate()); }
+function eindUur(u) { const h = (parseInt(u, 10) + 1) % 24; return String(h).padStart(2, '0') + ':00'; }
+function blokHtml(b, i) {
+  const gem = b.pr.reduce((a, c) => a + c, 0) / b.pr.length;
+  const dag = b.d && b.d > vandaagS() ? 'morgen ' : '';
+  return '<div class="blok' + (i === 0 ? ' nu' : '') + '"><span class="kl" style="background:var(' + (KLEUR[b.m] || '--eco') + ')"></span>'
+    + '<div><b>' + (NAAM[b.m] || b.m) + '</b><small>' + dag + b.van.u + ' tot ' + eindUur(b.tot.u) + ' · ' + (UITLEG[b.m] || '') + '</small></div>'
+    + '<span class="num">' + eur(gem) + '</span></div>';
+}
+
+// ---------- tekenen ----------
+let laatste = null;
+function teken(d) {
+  if (d.gW == null) d.gW = 0; if (d.bW == null) d.bW = 0; if (d.sW == null) d.sW = 0;
+  const nu = new Date();
+  const uur = nu.getHours();
+  $('groet').textContent = uur < 6 ? 'Goedenacht' : uur < 12 ? 'Goedemorgen' : uur < 18 ? 'Goedemiddag' : 'Goedenavond';
+  $('datum').textContent = nu.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('alarm').hidden = !d.vanNet;
+
+  // batterij
+  const soc = Math.round(d.soc || 0);
+  $('soc').textContent = soc + '%';
+  $('ringval').style.strokeDashoffset = 326.7 * (1 - soc / 100);
+  $('maskval').style.strokeDashoffset = 326.7 * (1 - soc / 100);
+  const verkoopt = d.bW > 100 && d.gW > 100;
+  const kleur = d.bW < -100 ? css('--verkopen') : verkoopt ? css('--leeg') : css('--kopen');
+  $('ringval').style.stroke = kleur; $('ringval').style.color = kleur;
+  const ring = $('ring');
+  ring.classList.toggle('laadt', d.bW < -100);
+  ring.classList.toggle('verkoopt', verkoopt);
+  ring.classList.toggle('levert', d.bW > 100 && !verkoopt);
+  const m = d.m || 'E';
+  $('chip').textContent = NAAM[m] || m;
+  $('chip').style.background = css(KLEUR[m] || '--eco');
+  $('chip').style.color = '#14122e';
+  $('echt').textContent = d.bW > 100 ? 'Levert nu ' + kw(d.bW) : d.bW < -100 ? 'Laadt nu ' + kw(d.bW) : 'Batterij in rust';
+  const delen = String(d.advies || '').split('|');
+  $('volgende').textContent = delen[1] ? 'Daarna ' + delen[1].trim() : '';
+  $('sturing').textContent = d.sturing === true ? 'Omvormer: ' + (d.sturingTekst || 'aan')
+    : d.sturing === false ? 'Sturing uit, omvormer op eco' : '';
+  $('sturingPunt').style.background = d.sturing ? css('--verkopen') : css('--dim');
+  $('sturingPunt').style.color = d.sturing ? css('--verkopen') : 'transparent';
+
+  // stats
+  if (d.gW > 100) { $('netK').textContent = 'Verkopen'; $('net').textContent = kw(d.gW); $('net').style.color = css('--verkopen'); $('netS').textContent = 'aan het net'; }
+  else if (d.gW < -100) { $('netK').textContent = 'Kopen'; $('net').textContent = kw(d.gW); $('net').style.color = css('--kopen'); $('netS').textContent = 'van het net'; }
+  else { $('netK').textContent = 'Net'; $('net').textContent = 'balans'; $('net').style.color = css('--ink'); $('netS').textContent = 'niets van of naar net'; }
+  $('zon').textContent = d.sW > 50 ? kw(d.sW) : '0 kW';
+  $('zon').style.color = d.sW > 50 ? css('--warm') : css('--muted');
+  $('prijs').textContent = d.prijs != null ? eur(d.prijs) : '-';
+  if (d.dag) {
+    const s = d.dag.saldo;
+    $('dagK').textContent = s >= 0 ? 'Vandaag winst' : 'Vandaag kosten';
+    $('dag').textContent = eur(Math.abs(s));
+    $('dag').style.color = s >= 0 ? css('--verkopen') : css('--kopen');
+    $('dagS').textContent = 'kopen ' + eur(d.dag.kopen) + ' · verkopen ' + eur(d.dag.verkopen);
+  }
+
+  // plan
+  const bl = blokken(d.plan);
+  $('blokkenKort').innerHTML = bl.slice(0, 3).map(blokHtml).join('') || '<span class="muted">Nog geen plan</span>';
+  $('blokken').innerHTML = bl.map(blokHtml).join('') || '<span class="muted">Nog geen plan</span>';
+  const laatsteUur = (d.plan || []).slice(-1)[0];
+  $('planSub').textContent = laatsteUur ? 'Plan loopt tot ' + (laatsteUur.d > vandaagS() ? 'morgen ' : '') + eindUur(laatsteUur.u) + '. Elke dag om 14:15 een nieuw plan.' : '';
+
+  // auto
+  const laadt = d.lader === 'Laden';
+  document.querySelectorAll('#auto, #niroKort').forEach(e => e.classList.toggle('laadt', laadt));
+  const niro = d.niro != null ? Math.round(d.niro) : null;
+  const doel = Number(d.laaddoel) || null;
+  const barKleur = niro != null && niro < 40 ? css('--kopen') : css('--verkopen');
+  $('niroSoc').textContent = $('niroKortSoc').textContent = niro != null ? niro + '%' : '-';
+  $('niroBar').style.width = $('niroKortBar').style.width = (niro || 0) + '%';
+  $('niroBar').style.background = $('niroKortBar').style.background = barKleur;
+  $('lader').textContent = $('niroKortStatus').textContent = d.lader || '-';
+  $('niroKortDoel').textContent = doel ? 'doel ' + doel + '%' : '';
+  $('niroDoel').style.display = $('niroDoelT').style.display = doel ? 'block' : 'none';
+  if (doel) {
+    $('niroDoel').style.left = 'calc(' + Math.min(doel, 99.5) + '% - 1px)';
+    $('niroDoelT').style.left = Math.min(Math.max(doel, 8), 92) + '%';
+    $('niroDoelT').textContent = 'doel ' + doel + '%';
+  }
+  $('laaddoel').textContent = doel ? doel + '%' : '-';
+  $('laadmodus').textContent = d.laadmodus || '-';
+  if (laadt && niro != null) {
+    const kwA = d.autoW > 1000 ? d.autoW / 1000 : 10.8;
+    const rest = Math.max(0, ((doel || 100) - niro) / 100 * 64.8);
+    const klaar = new Date(Date.now() + rest / kwA * 3600000);
+    $('autolaad').textContent = 'Laadt ' + kwA.toFixed(1).replace('.', ',') + ' kW · ' + (doel || 100) + '% om ca. ' + tijd(klaar);
+  }
+  $('vertrek').textContent = d.later ? '07:20' : '06:20';
+  $('vertrekK').textContent = 'Auto warm ' + (uur < 7 ? 'vandaag' : 'morgen') + ' om';
+
+  // geld
+  const geldKaart = (k, v, s, k2, x, titel) => {
+    if (!x) return;
+    $(k).textContent = titel + (x.saldo >= 0 ? ' winst' : ' kosten');
+    $(v).textContent = eur(Math.abs(x.saldo));
+    $(v).style.color = x.saldo >= 0 ? css('--verkopen') : css('--kopen');
+    $(s).textContent = 'kopen ' + eur(x.kopen) + ' · verkopen ' + eur(x.verkopen);
+    $(k2).textContent = x.kwhIn != null ? Math.round(x.kwhIn) + ' kWh in · ' + Math.round(x.kwhUit) + ' kWh uit' : '';
+  };
+  geldKaart('gDagK', 'gDag', 'gDagS', 'gDagK2', d.dag, 'Vandaag');
+  geldKaart('gMaandK', 'gMaand', 'gMaandS', 'gMaandK2', d.maand, 'Deze maand');
+  if (d.jaarSaldo != null) {
+    $('gJaarK').textContent = 'Dit jaar' + (d.jaarSaldo >= 0 ? ' winst' : ' kosten');
+    $('gJaar').textContent = eur(Math.abs(d.jaarSaldo));
+    $('gJaar').style.color = d.jaarSaldo >= 0 ? css('--verkopen') : css('--kopen');
+  }
+  $('maandTitel').textContent = 'Per maand ' + (d.jaarNu || '');
+
+  // huis
+  const w = d.woon || {};
+  $('woon').textContent = graad(w.t);
+  $('woonS').textContent = w.doel != null ? 'Nest op ' + graad(w.doel) + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
+  $('boven').textContent = graad(d.boven);
+  $('bovenKaart').hidden = d.boven == null;
+  $('buiten').textContent = graad(d.temp);
+  $('hSturing').textContent = d.sturing === true ? 'aan' : d.sturing === false ? 'uit' : '-';
+  $('hOmvormer').textContent = d.sturingTekst || '-';
+  const t = new Date(d.t);
+  $('hTijd').textContent = isNaN(t) ? '-' : tijd(t);
+  $('hVersie').textContent = VERSIE;
+
+  const oud = (Date.now() - t.getTime()) / 60000;
+  $('leeftijd').textContent = demoModus || !koppeling ? 'voorbeeld' : oud < 1.5 ? 'net bijgewerkt' : Math.round(oud) + ' min geleden';
+  $('zijVoet').textContent = demoModus || !koppeling ? 'Voorbeeldgegevens' : 'Bijgewerkt ' + (isNaN(t) ? '-' : tijd(t));
+  $('melding').textContent = !demoModus && koppeling && oud > 10 ? 'Let op: gegevens zijn ' + Math.round(oud) + ' minuten oud' : '';
+
+  tekenGrafieken();
+}
+
+// ---------- grafieken ----------
+function maat(svg) {
+  const W = svg.clientWidth || 600, H = svg.clientHeight || 200;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  return [W, H];
+}
+function tekenGrafieken() {
+  const d = laatste || {};
+  if (!$('prijsGrafiek').closest('[hidden]')) prijsGrafiek(d.plan || []);
+  if (!$('maandGrafiek').closest('[hidden]')) maandGrafiek(d.jaar || []);
+}
+function prijsGrafiek(planIn) {
+  const svg = $('prijsGrafiek');
+  const n = new Date();
+  const p2 = x => String(x).padStart(2, '0');
+  const nuS = n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-' + p2(n.getDate()) + ' ' + p2(n.getHours()) + ':00';
+  const plan = planIn.filter(p => !p.d || (p.d + ' ' + p.u) >= nuS).slice(0, 24);
+  const [W, H] = maat(svg);
+  if (!plan.length) { svg.innerHTML = ''; return; }
+  const smal = W < 500;
+  const links = 34, onder = 22, boven = 22;
+  const pr = plan.map(p => p.p);
+  const max = Math.max(...pr), min = Math.min(...pr);
+  const top = Math.ceil(max * 1.08 * 20) / 20;
+  const bodem = Math.max(0, Math.floor(min * 0.85 * 20) / 20);
+  const bw = (W - links) / plan.length;
+  const y = v => boven + (H - onder - boven) * (1 - (v - bodem) / ((top - bodem) || 1));
+  let s = '<defs>';
+  for (const k of Object.keys(KLEUR)) {
+    s += '<linearGradient id="gr' + k + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + css(KLEUR[k])
+      + '"/><stop offset="1" stop-color="' + css(KLEUR[k]) + '" stop-opacity="0.25"/></linearGradient>';
+  }
+  s += '</defs>';
+  const stap = (top - bodem) > 0.25 ? 0.1 : 0.05;
+  for (let v = bodem; v <= top + 0.0001; v += stap) {
+    const yy = y(v);
+    s += '<line x1="' + links + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="rgba(255,255,255,.08)"/>'
+      + '<text x="' + (links - 5) + '" y="' + (yy + 4) + '" fill="' + css('--dim') + '" font-size="10" text-anchor="end">'
+      + v.toFixed(2).replace('.', ',') + '</text>';
+  }
+  const gem = pr.reduce((a, b) => a + b, 0) / pr.length;
+  $('gemPrijs').textContent = 'gemiddeld ' + eur(gem);
+  s += '<line x1="' + links + '" x2="' + W + '" y1="' + y(gem) + '" y2="' + y(gem) + '" stroke="' + css('--muted') + '" stroke-dasharray="4 4" opacity=".7"/>';
+  const iMax = pr.indexOf(max), iMin = pr.indexOf(min);
+  plan.forEach((p, i) => {
+    const x = links + i * bw, yy = y(p.p);
+    s += '<rect x="' + (x + bw * 0.14) + '" y="' + yy + '" width="' + (bw * 0.72) + '" height="' + Math.max(2, y(bodem) - yy)
+      + '" rx="' + Math.min(4, bw * 0.2) + '" fill="url(#gr' + (KLEUR[p.m] ? p.m : 'E') + ')"/>';
+    if (i > 0 && p.u === '00:00') {
+      s += '<line x1="' + x + '" x2="' + x + '" y1="' + (boven - 6) + '" y2="' + (H - onder) + '" stroke="' + css('--muted')
+        + '" stroke-dasharray="2 4"/><text x="' + (x + 4) + '" y="' + (boven - 8) + '" fill="' + css('--muted') + '" font-size="10">morgen</text>';
+    }
+    if (i % (smal ? 4 : 3) === 0) {
+      s += '<text x="' + (x + bw / 2) + '" y="' + (H - 5) + '" fill="' + css('--muted') + '" font-size="11" text-anchor="middle">' + p.u + '</text>';
+    }
+    if (i === iMax || i === iMin) {
+      s += '<text x="' + (x + bw / 2) + '" y="' + (yy - 5) + '" fill="' + css('--ink') + '" font-size="11" font-weight="700" text-anchor="middle">'
+        + p.p.toFixed(2).replace('.', ',') + '</text>';
+    }
+  });
+  const xn = links + bw * (n.getMinutes() / 60);
+  s += '<line x1="' + xn + '" x2="' + xn + '" y1="' + (boven - 6) + '" y2="' + (H - onder) + '" stroke="#fff" stroke-width="2"/>'
+    + '<text x="' + (xn + 4) + '" y="' + (boven - 8) + '" fill="#fff" font-size="10" font-weight="700">nu</text>';
+  svg.innerHTML = s;
+  $('legenda').innerHTML = ['L', 'V', 'E', 'H'].map(k => '<span><i style="background:var(' + KLEUR[k] + ')"></i>' + NAAM[k] + '</span>').join('');
+}
+function maandGrafiek(j) {
+  const svg = $('maandGrafiek');
+  const [W, H] = maat(svg);
+  if (!j.length) { svg.innerHTML = ''; return; }
+  const onder = 22, boven = 18;
+  const ext = Math.max(10, ...j.map(x => Math.abs(x.s || 0))) * 1.25;
+  const y0 = boven + (H - onder - boven) / 2;
+  const sc = (H - onder - boven) / 2 / ext;
+  const bw = W / j.length;
+  const smal = W < 500;
+  let s = '<line x1="0" x2="' + W + '" y1="' + y0 + '" y2="' + y0 + '" stroke="rgba(255,255,255,.15)"/>';
+  j.forEach((x, i) => {
+    const cx = i * bw + bw / 2;
+    if (x.s != null) {
+      const h = Math.max(2, Math.abs(x.s) * sc);
+      const yy = x.s >= 0 ? y0 - h : y0;
+      s += '<rect x="' + (i * bw + bw * 0.18) + '" y="' + yy + '" width="' + (bw * 0.64) + '" height="' + h + '" rx="4" fill="'
+        + css(x.s >= 0 ? '--verkopen' : '--kopen') + '" opacity="' + (x.nu ? 1 : 0.75) + '"' + (x.nu ? ' stroke="#fff" stroke-width="2"' : '') + '/>';
+      const ty = x.s >= 0 ? yy - 5 : yy + h + 12;
+      s += '<text x="' + cx + '" y="' + ty + '" fill="' + css('--ink') + '" font-size="' + (smal ? 9 : 11) + '" text-anchor="middle">'
+        + (x.s >= 0 ? '+' : '-') + Math.round(Math.abs(x.s)) + '</text>';
+    }
+    s += '<text x="' + cx + '" y="' + (H - 5) + '" fill="' + css(x.nu ? '--ink' : '--muted') + '" font-size="' + (smal ? 9 : 11)
+      + '" text-anchor="middle"' + (x.nu ? ' font-weight="700"' : '') + '>' + (smal ? x.m.charAt(0) : x.m) + '</text>';
+  });
+  svg.innerHTML = s;
+}
+
+// ---------- verversen ----------
+let bezig = false;
+async function ververs() {
+  if (bezig) return;
+  bezig = true;
+  document.querySelectorAll('.vknop').forEach(b => b.classList.add('draait'));
+  try {
+    laatste = await haal();
+    teken(laatste);
+  } catch (e) {
+    $('melding').textContent = 'Geen verbinding: ' + e.message;
+  } finally {
+    bezig = false;
+    document.querySelectorAll('.vknop').forEach(b => b.classList.remove('draait'));
+  }
+}
+document.querySelectorAll('.vknop').forEach(b => b.addEventListener('click', ververs));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ververs(); });
+window.addEventListener('resize', () => laatste && tekenGrafieken());
+
+// ---------- start ----------
+function start() {
+  $('koppel').hidden = true;
+  $('app').hidden = false;
+  $('tabbar').hidden = false;
+  if (!location.hash) history.replaceState(null, '', '#nu');
+  toon();
+  ververs();
+}
+$('koppelKnop').addEventListener('click', () => {
+  const k = leesLink($('koppelLink').value.trim());
+  if (!k) { $('koppelFout').textContent = 'In deze link staat geen homey en key.'; return; }
+  koppeling = k; bewaar(k); demoModus = false; start();
+});
+$('demoKnop').addEventListener('click', () => { demoModus = true; start(); });
+$('ontkoppel').addEventListener('click', () => {
+  try { localStorage.removeItem(OPSLAG); } catch (e) { /* niets */ }
+  koppeling = null; demoModus = false;
+  $('app').hidden = true; $('tabbar').hidden = true; $('koppel').hidden = false;
+});
+if (koppeling) start(); else $('koppel').hidden = false;
+setInterval(ververs, VERVERS_MS);
+
+// offline werken en sneller openen
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

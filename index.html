@@ -12,7 +12,7 @@
 <!-- 25-10-2026 MK regel batterijsturing -->
 <!-- 25-10-2026 MK grafiek begint altijd bij het huidige uur -->
 <!-- 25-10-2026 MK ring: groen laden, rood verkopen, oranje rust/eigen gebruik, lichtgolf -->
-<style>
+<!-- 25-10-2026 MK telefoon gaat naar app.html --><style>
   :root {
     --bg: #0d1117;
     --tile: #161b22;
@@ -273,6 +273,12 @@
 <div class="melding" id="melding"></div>
 
 <script>
+// 25-10-2026 MK telefoon naar de app, Nest Hub (600 px of meer) blijft hier
+// met ?nest=1 in de link blijft ook een telefoon op het dashboard
+if (Math.min(screen.width, screen.height) < 560
+  && !/[?&]nest=1/.test(location.search)) {
+  location.replace('app.html' + location.search + location.hash);
+}
 // 24-10-2026 MK instellingen komen uit de link: #homey=ID&key=SLEUTEL
 // 25-10-2026 MK ook ?h=ID:SLEUTEL voor casten zonder # en &
 const P = new URLSearchParams(location.hash.slice(1));
