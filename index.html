@@ -6,6 +6,7 @@
 <title>Energie thuis</title>
 <!-- 24-10-2026 MK Nest Hub dashboard energie en auto -->
 <!-- 25-10-2026 MK saldo dag/maand/jaar, nieuwe grafiek, kopen/verkopen/sparen -->
+<!-- 25-10-2026 MK ring vloeit bij laden/leveren, label auto warm -->
 <style>
   :root {
     --bg: #0d1117;
@@ -64,6 +65,15 @@
   .ring .pct b { font-size: 42px; font-weight: 700; }
   .ring .pct span { font-size: 13px; color: var(--muted); }
   .battinfo { min-width: 0; }
+  /* stroom door de ring: met de klok mee bij laden, terug bij leveren */
+  #stroom { display: none; }
+  .laadt #stroom, .levert #stroom { display: block;
+    animation: vloei 1.1s linear infinite; }
+  .levert #stroom { animation-direction: reverse; }
+  @keyframes vloei { from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: -24; } }
+  .laadt #ringval, .levert #ringval {
+    filter: drop-shadow(0 0 4px currentColor); }
   .chip {
     display: inline-block; padding: 6px 14px; border-radius: 999px;
     font-weight: 700; font-size: 20px; margin: 6px 0 8px;
@@ -79,6 +89,8 @@
     margin-top: 4px; white-space: nowrap; }
   .mini small { color: var(--muted); font-size: 14px; display: block;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #dagsub { font-size: 12px; line-height: 1.3; }
+  .mini b#dagsaldo { margin-top: 2px; }
 
   /* auto */
   .auto { grid-area: car; display: flex; flex-direction: column; gap: 8px; }
@@ -150,9 +162,18 @@
       <svg viewBox="0 0 120 120">
         <circle cx="60" cy="60" r="52" fill="none"
           stroke="#2a3340" stroke-width="12"/>
+        <defs><mask id="vulmask">
+          <circle id="maskval" cx="60" cy="60" r="52" fill="none"
+            stroke="#fff" stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+        </mask></defs>
         <circle id="ringval" cx="60" cy="60" r="52" fill="none"
           stroke="#3fb950" stroke-width="12" stroke-linecap="round"
           stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+        <circle id="stroom" cx="60" cy="60" r="52" fill="none"
+          stroke="rgba(255,255,255,0.6)" stroke-width="5"
+          stroke-linecap="round" stroke-dasharray="6 18"
+          mask="url(#vulmask)"/>
       </svg>
       <div class="pct"><b id="soc">-</b><span>thuisbatterij</span></div>
     </div>
@@ -298,6 +319,7 @@ function teken(d) {
   const soc = Math.round(d.soc || 0);
   $('soc').textContent = soc + '%';
   $('ringval').style.strokeDashoffset = 326.7 * (1 - soc / 100);
+  $('maskval').style.strokeDashoffset = 326.7 * (1 - soc / 100);
   $('ringval').style.stroke = soc < 20 ? css('--leeg')
     : soc < 40 ? css('--kopen') : css('--verkopen');
   const m = d.m || 'E';
@@ -311,6 +333,11 @@ function teken(d) {
   if (d.sW == null) d.sW = 0;
   $('echt').textContent = d.bW > 100 ? 'Levert nu ' + kw(d.bW)
     : d.bW < -100 ? 'Laadt nu ' + kw(d.bW) : 'Batterij in rust';
+  // GivEnergy: + is leveren (ontladen), - is laden
+  const ring = document.querySelector('.ring');
+  ring.classList.toggle('laadt', d.bW < -100);
+  ring.classList.toggle('levert', d.bW > 100);
+  $('ringval').style.color = $('ringval').style.stroke;
 
   // net: kopen of verkopen
   if (d.gW > 100) {
@@ -327,7 +354,7 @@ function teken(d) {
     $('netlabel').textContent = 'Net';
     $('net').textContent = 'balans';
     $('net').style.color = css('--text');
-    $('netsub').textContent = 'geen kopen of verkopen';
+    $('netsub').textContent = 'niets van of naar net';
   }
   $('zon').textContent = d.sW > 50 ? kw(d.sW) : '0 kW';
   $('zon').style.color = d.sW > 50 ? css('--warm') : css('--muted');
@@ -341,8 +368,8 @@ function teken(d) {
     $('dagkop').textContent = s >= 0 ? 'Vandaag winst' : 'Vandaag kosten';
     $('dagsaldo').textContent = eur(Math.abs(s));
     $('dagsaldo').style.color = s >= 0 ? css('--verkopen') : css('--kopen');
-    $('dagsub').textContent = 'kopen ' + eur(d.dag.kopen)
-      + ' · verkopen ' + eur(d.dag.verkopen);
+    $('dagsub').innerHTML = 'kopen ' + eur(d.dag.kopen)
+      + '<br>verkopen ' + eur(d.dag.verkopen);
   }
   $('alarm').style.display = d.vanNet ? 'block' : 'none';
   $('prijs').textContent = d.prijs != null ? eur(d.prijs) : '-';
@@ -358,7 +385,7 @@ function teken(d) {
   $('laadmodus').textContent = d.laadmodus || '-';
   $('vertrek').textContent = d.later ? '07:20' : '06:20';
   const dagW = new Date().getHours() < 7 ? 'vandaag' : 'morgen';
-  $('vertreksub').textContent = 'Warm ' + dagW;
+  $('vertreksub').textContent = 'Auto warm ' + dagW + ' om';
 
   // binnen
   const graad = v => v == null ? '-'
