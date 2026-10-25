@@ -7,6 +7,9 @@
 <!-- 24-10-2026 MK Nest Hub dashboard energie en auto -->
 <!-- 25-10-2026 MK saldo dag/maand/jaar, nieuwe grafiek, kopen/verkopen/sparen -->
 <!-- 25-10-2026 MK ring vloeit bij laden/leveren, label auto warm -->
+<!-- 25-10-2026 MK pagina ververst zichzelf bij nieuwe versie -->
+<!-- 25-10-2026 MK Niro tegel bewegend tijdens laden, doel en vol om -->
+<!-- 25-10-2026 MK regel batterijsturing -->
 <style>
   :root {
     --bg: #0d1117;
@@ -97,8 +100,29 @@
   .auto .soc { font-size: 46px; font-weight: 700; line-height: 1; }
   .bar { height: 12px; background: var(--tile2); border-radius: 99px;
     overflow: hidden; }
+  .bar { position: relative; flex: none; }
+  .auto > * { flex-shrink: 0; }
   .bar i { display: block; height: 100%; border-radius: 99px;
-    background: var(--verkopen); }
+    background: var(--verkopen); position: relative; overflow: hidden;
+    transition: width 1s ease; }
+  .bar .doelstreep { position: absolute; top: -3px; bottom: -3px;
+    width: 3px; border-radius: 2px; background: var(--muted);
+    display: none; }
+  /* tijdens laden: lichtgolf die over de balk loopt */
+  .auto.laadt .bar i::after { content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%,
+      rgba(255,255,255,0.55) 50%, transparent 100%);
+    width: 40%; animation: golf 1.6s linear infinite; }
+  @keyframes golf { from { transform: translateX(-100%); }
+    to { transform: translateX(300%); } }
+  .auto.laadt .bar i { box-shadow: 0 0 10px var(--verkopen); }
+  .bliksem { display: none; color: var(--warm); margin-left: 6px;
+    font-size: 0.7em; vertical-align: 0.25em;
+    animation: puls 1.2s ease-in-out infinite; }
+  .auto.laadt .bliksem { display: inline; }
+  @keyframes puls { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .autolaad { color: var(--verkopen); font-size: 15px; display: none; }
+  .auto.laadt .autolaad { display: block; }
   .rij { display: flex; justify-content: space-between;
     font-size: 17px; padding: 6px 0; border-top: 1px solid var(--line); }
   .rij span:first-child { color: var(--muted); }
@@ -182,6 +206,7 @@
       <div class="chip" id="chip">-</div>
       <div class="sub" id="volgende"></div>
       <div class="sub" id="echt"></div>
+      <div class="sub" id="sturing" style="font-size:13px;margin-top:4px"></div>
     </div>
   </div>
 
@@ -198,8 +223,10 @@
 
   <div class="tile auto">
     <div class="label">Niro</div>
-    <div class="soc" id="nirosoc">-</div>
-    <div class="bar"><i id="nirobar" style="width:0"></i></div>
+    <div class="soc"><span id="nirosoc">-</span><span class="bliksem">&#9889;</span></div>
+    <div class="bar"><i id="nirobar" style="width:0"></i>
+      <span class="doelstreep" id="nirodoel"></span></div>
+    <div class="autolaad" id="autolaad"></div>
     <div>
       <div class="rij"><span>Lader</span><span id="lader">-</span></div>
       <div class="rij"><span>Laadmodus</span><span id="laadmodus">-</span></div>
@@ -249,6 +276,8 @@ if (H && H.includes(':')) {
 }
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
+// bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
+const VERSIE = '2026-10-25-06';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -291,13 +320,15 @@ function demo() {
       nu: i === 9 }));
   return { t: new Date().toISOString(), soc: 87, bW: 450, sW: 0,
     gW: -20, m: 'E', advies: 'Eco (€ 0,24) | 23:00 Sparen',
+    sturing: true, sturingTekst: 'Eco',
     prijs: 0.24, temp: 10.4, niro: 62,
     dag: { kopen: 1.12, verkopen: 0.48, kwhIn: 6.4, kwhUit: 2.1,
       saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90,
       saldo: -8.8 },
     jaar, jaarNu: String(new Date().getFullYear()), jaarSaldo: 115,
-    lader: 'Aangesloten', laadmodus: 'uit', later: false,
+    lader: 'Laden', laadmodus: 'uit', laaddoel: 80, autoW: 10800,
+    later: false,
     woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
 }
 
@@ -333,6 +364,12 @@ function teken(d) {
   if (d.sW == null) d.sW = 0;
   $('echt').textContent = d.bW > 100 ? 'Levert nu ' + kw(d.bW)
     : d.bW < -100 ? 'Laadt nu ' + kw(d.bW) : 'Batterij in rust';
+  if (d.sturing === true) {
+    $('sturing').innerHTML = '<span style="color:var(--verkopen)">&#9679;</span> Omvormer: '
+      + (d.sturingTekst || 'aan');
+  } else if (d.sturing === false) {
+    $('sturing').innerHTML = '<span style="color:var(--muted)">&#9679;</span> Sturing uit, omvormer op eco';
+  } else { $('sturing').textContent = ''; }
   // GivEnergy: + is leveren (ontladen), - is laden
   const ring = document.querySelector('.ring');
   ring.classList.toggle('laadt', d.bW < -100);
@@ -382,6 +419,21 @@ function teken(d) {
   $('nirobar').style.background = d.niro < 40 ? css('--kopen')
     : css('--verkopen');
   $('lader').textContent = d.lader || '-';
+  // laden: bewegende balk, doel en verwachte tijd vol
+  const laadt = d.lader === 'Laden';
+  document.querySelector('.auto').classList.toggle('laadt', laadt);
+  const doel = Number(d.laaddoel) || null;
+  $('nirodoel').style.display = doel && doel < 100 ? 'block' : 'none';
+  if (doel) $('nirodoel').style.left = 'calc(' + doel + '% - 1px)';
+  if (laadt && d.niro != null) {
+    const kwA = d.autoW > 1000 ? d.autoW / 1000 : 10.8;
+    const rest = Math.max(0, ((doel || 100) - d.niro) / 100 * 64.8);
+    const klaar = new Date(Date.now() + rest / kwA * 3600000);
+    $('autolaad').textContent = 'Laadt ' + kwA.toFixed(1).replace('.', ',')
+      + ' kW · ' + (doel || 100) + '% om ca. '
+      + klaar.toLocaleTimeString('nl-NL', { hour: '2-digit',
+        minute: '2-digit' });
+  }
   $('laadmodus').textContent = d.laadmodus || '-';
   $('vertrek').textContent = d.later ? '07:20' : '06:20';
   const dagW = new Date().getHours() < 7 ? 'vandaag' : 'morgen';
@@ -561,6 +613,19 @@ setInterval(() => { scherm = 1 - scherm; grafieken(); }, WISSEL_MS);
 window.addEventListener('resize', () => laatste && teken(laatste));
 ververs();
 setInterval(ververs, VERVERS_MS);
+
+// elke 5 minuten kijken of er een nieuwe versie op GitHub staat
+async function nieuweVersie() {
+  if (location.protocol === 'file:') return;
+  try {
+    const r = await fetch(location.pathname + '?v=' + Date.now(),
+      { cache: 'no-store' });
+    const t = await r.text();
+    const m = t.match(/const VERSIE = '([^']+)'/);
+    if (m && m[1] !== VERSIE) location.reload();
+  } catch (e) { /* volgende keer */ }
+}
+setInterval(nieuweVersie, 5 * 60000);
 </script>
 </body>
 </html>
