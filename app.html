@@ -359,7 +359,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-10-25-a1';
+const VERSIE = '2026-10-26-a2';
 const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
@@ -658,7 +658,7 @@ function prijsGrafiek(planIn) {
   s += '<line x1="' + xn + '" x2="' + xn + '" y1="' + (boven - 6) + '" y2="' + (H - onder) + '" stroke="#fff" stroke-width="2"/>'
     + '<text x="' + (xn + 4) + '" y="' + (boven - 8) + '" fill="#fff" font-size="10" font-weight="700">nu</text>';
   svg.innerHTML = s;
-  $('legenda').innerHTML = ['L', 'V', 'E', 'H'].map(k => '<span><i style="background:var(' + KLEUR[k] + ')"></i>' + NAAM[k] + '</span>').join('');
+  $('legenda').innerHTML = ['L', 'V', 'E', 'H', 'X'].map(k => '<span><i style="background:var(' + KLEUR[k] + ')"></i>' + (k === 'X' ? 'Kopen, batterij leeg' : NAAM[k]) + '</span>').join('');
 }
 function maandGrafiek(j) {
   const svg = $('maandGrafiek');

@@ -12,7 +12,8 @@
 <!-- 25-10-2026 MK regel batterijsturing -->
 <!-- 25-10-2026 MK grafiek begint altijd bij het huidige uur -->
 <!-- 25-10-2026 MK ring: groen laden, rood verkopen, oranje rust/eigen gebruik, lichtgolf -->
-<!-- 25-10-2026 MK telefoon gaat naar app.html --><style>
+<!-- 25-10-2026 MK telefoon gaat naar app.html -->
+<!-- 26-10-2026 MK legenda met oranje kopen --><style>
   :root {
     --bg: #0d1117;
     --tile: #161b22;
@@ -293,7 +294,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-25-09';
+const VERSIE = '2026-10-26-01';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -612,9 +613,11 @@ function grafieken() {
   const d = laatste || {};
   if (scherm === 0) {
     $('charttitel').textContent = 'Stroomprijs en batterijplan';
-    $('legenda').innerHTML = ['L', 'V', 'E', 'H'].map(k =>
+    // 26-10-2026 MK oranje kopen (batterij leeg) in de legenda
+    $('legenda').innerHTML = ['L', 'V', 'E', 'H', 'X'].map(k =>
       '<span><i style="background:var(' + KLEUR[k] + ')"></i>'
-      + NAAM[k].toLowerCase() + '</span>').join('');
+      + (k === 'X' ? 'kopen, batterij leeg' : NAAM[k].toLowerCase())
+      + '</span>').join('');
     prijsGrafiek(d.plan || []);
   } else {
     $('charttitel').textContent = 'Kosten en winst ' + (d.jaarNu || '');
