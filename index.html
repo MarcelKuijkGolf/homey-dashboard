@@ -295,7 +295,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-27-01';
+const VERSIE = '2026-10-27-02';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -346,7 +346,7 @@ function demo() {
       saldo: -8.8 },
     jaar, jaarNu: String(new Date().getFullYear()), jaarSaldo: 115,
     lader: 'Laden', laadmodus: 'uit', laaddoel: 80, autoW: 10800,
-    alfen: { maand: { kwh: 86.4, eur: 19.87, dagen: 6 } },
+    alfen: { maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } },
     later: false,
     woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
 }
@@ -462,8 +462,14 @@ function teken(d) {
   const alV = al.vandaag && al.vandaag.kwh > 0 ? al.vandaag : null;
   const alX = alV || al.maand;
   $('alfenk').textContent = alV ? 'Alfen vandaag' : 'Alfen maand';
-  $('alfen').textContent = alX && alX.kwh > 0 ? eur(alX.eur) + ' · '
-    + Math.round(alX.kwh) + ' kWh' : '€ 0,00';
+  // 27-10-2026 MK gratis laden: bespaard in groen
+  const alBes = alX ? alX.bespaard || 0 : 0;
+  const alBet = alX ? alX.betaald || 0 : 0;
+  $('alfen').textContent = alX && alX.kwh > 0 ? (alBes >= alBet
+    ? '+' + eur(alBes) : eur(alBet)) + ' · ' + Math.round(alX.kwh) + ' kWh'
+    : '€ 0,00';
+  $('alfen').style.color = alBes >= alBet && alBes > 0
+    ? css('--verkopen') : '';
   $('vertrek').textContent = d.later ? '07:20' : '06:20';
   const dagW = new Date().getHours() < 7 ? 'vandaag' : 'morgen';
   $('vertreksub').textContent = 'Auto warm ' + dagW + ' om';
