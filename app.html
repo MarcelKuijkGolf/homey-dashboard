@@ -309,6 +309,10 @@ main{min-width:0}
           <div class="rij"><span id="vertrekK">Auto warm om</span><b id="vertrek">-</b></div>
         </div>
       </div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2>Laden bij Alfen</h2><span class="muted small">€ 0,23 per kWh</span></div>
+        <div class="geld alfenkaarten"></div>
+      </div>
     </section>
 
     <!-- GELD -->
@@ -322,6 +326,10 @@ main{min-width:0}
       <div class="paneel">
         <div class="paneel-kop"><h2 id="maandTitel">Per maand</h2><span class="muted small">+ winst, - kosten</span></div>
         <svg class="grafiek" id="maandGrafiek" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2>Laden bij Alfen</h2><span class="muted small">€ 0,23 per kWh</span></div>
+        <div class="geld alfenkaarten"></div>
       </div>
     </section>
 
@@ -359,7 +367,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-10-26-a2';
+const VERSIE = '2026-10-27-a3';
 const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
@@ -432,7 +440,7 @@ function demo() {
     prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
     jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', laadmodus: 'prijs', laaddoel: 100,
-    autoW: 10800, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
+    autoW: 10800, alfen: { vandaag: { kwh: 15.8, eur: 3.63, van: 47, tot: 69, laadt: true }, maand: { kwh: 86.4, eur: 19.87, dagen: 6 }, jaar: { kwh: 86.4, eur: 19.87, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
 }
 async function haal() {
   if (demoModus || !koppeling) return demo();
@@ -572,6 +580,18 @@ function teken(d) {
     $('gJaar').style.color = d.jaarSaldo >= 0 ? css('--verkopen') : css('--kopen');
   }
   $('maandTitel').textContent = 'Per maand ' + (d.jaarNu || '');
+
+  // 27-10-2026 MK laden bij Alfen
+  const al = d.alfen || {};
+  const kwhT = x => String(x).replace('.', ',') + ' kWh';
+  const alKaart = (titel, x, sub) => '<div class="stat"><span class="k">' + titel + '</span>'
+    + '<span class="v" style="color:var(--kopen)">' + (x && x.kwh > 0 ? eur(x.eur) : '€ 0,00') + '</span>'
+    + '<span class="s">' + (x && x.kwh > 0 ? kwhT(x.kwh) : 'niet geladen') + (sub ? ' · ' + sub : '') + '</span></div>';
+  const v = al.vandaag;
+  const html = alKaart(v && v.laadt ? 'Vandaag, laadt nu' : 'Vandaag', v, v && v.kwh > 0 ? v.van + '% naar ' + v.tot + '%' : '')
+    + alKaart('Deze maand', al.maand, al.maand && al.maand.dagen ? al.maand.dagen + ' dag' + (al.maand.dagen === 1 ? '' : 'en') : '')
+    + alKaart('Dit jaar', al.jaar, '');
+  document.querySelectorAll('.alfenkaarten').forEach(e => { e.innerHTML = html; });
 
   // huis
   const w = d.woon || {};

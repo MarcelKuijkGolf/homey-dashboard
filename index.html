@@ -13,7 +13,8 @@
 <!-- 25-10-2026 MK grafiek begint altijd bij het huidige uur -->
 <!-- 25-10-2026 MK ring: groen laden, rood verkopen, oranje rust/eigen gebruik, lichtgolf -->
 <!-- 25-10-2026 MK telefoon gaat naar app.html -->
-<!-- 26-10-2026 MK legenda met oranje kopen --><style>
+<!-- 26-10-2026 MK legenda met oranje kopen -->
+<!-- 27-10-2026 MK laden bij Alfen op de Niro tegel --><style>
   :root {
     --bg: #0d1117;
     --tile: #161b22;
@@ -240,7 +241,7 @@
     <div class="autolaad" id="autolaad"></div>
     <div>
       <div class="rij"><span>Lader</span><span id="lader">-</span></div>
-      <div class="rij"><span>Laadmodus</span><span id="laadmodus">-</span></div>
+      <div class="rij" style="white-space:nowrap"><span id="alfenk">Alfen maand</span><span id="alfen">-</span></div>
       <div class="rij"><span id="vertreksub">Warm om</span>
         <b id="vertrek">06:20</b></div>
     </div>
@@ -294,7 +295,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-26-01';
+const VERSIE = '2026-10-27-01';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -345,6 +346,7 @@ function demo() {
       saldo: -8.8 },
     jaar, jaarNu: String(new Date().getFullYear()), jaarSaldo: 115,
     lader: 'Laden', laadmodus: 'uit', laaddoel: 80, autoW: 10800,
+    alfen: { maand: { kwh: 86.4, eur: 19.87, dagen: 6 } },
     later: false,
     woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
 }
@@ -455,7 +457,13 @@ function teken(d) {
       + klaar.toLocaleTimeString('nl-NL', { hour: '2-digit',
         minute: '2-digit' });
   }
-  $('laadmodus').textContent = d.laadmodus || '-';
+  // 27-10-2026 MK laden bij Alfen in plaats van laadmodus
+  const al = d.alfen || {};
+  const alV = al.vandaag && al.vandaag.kwh > 0 ? al.vandaag : null;
+  const alX = alV || al.maand;
+  $('alfenk').textContent = alV ? 'Alfen vandaag' : 'Alfen maand';
+  $('alfen').textContent = alX && alX.kwh > 0 ? eur(alX.eur) + ' · '
+    + Math.round(alX.kwh) + ' kWh' : '€ 0,00';
   $('vertrek').textContent = d.later ? '07:20' : '06:20';
   const dagW = new Date().getHours() < 7 ? 'vandaag' : 'morgen';
   $('vertreksub').textContent = 'Auto warm ' + dagW + ' om';
