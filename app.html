@@ -367,7 +367,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-10-27-a4';
+const VERSIE = '2026-10-27-a5';
 const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
@@ -440,7 +440,7 @@ function demo() {
     prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
     jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', laadmodus: 'prijs', laaddoel: 100,
-    autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
+    autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true, kw: 9.4, vol: '09:55', doel: 80 }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
 }
 async function haal() {
   if (demoModus || !koppeling) return demo();
@@ -555,10 +555,17 @@ function teken(d) {
   $('laaddoel').textContent = doel ? doel + '%' : '-';
   $('laadmodus').textContent = d.laadmodus || '-';
   if (laadt && niro != null) {
+    // 27-10-2026 MK bij Alfen: geschat vermogen en vol om uit Laden Alfen
+    const alV = d.alfen && d.alfen.vandaag && d.alfen.vandaag.laadt ? d.alfen.vandaag : null;
+    if (alV) {
+      $('autolaad').textContent = 'Laadt bij Alfen' + (alV.kw ? ' · ca. ' + String(alV.kw).replace('.', ',') + ' kW' : '')
+        + (alV.vol ? ' · ' + alV.doel + '% om ' + alV.vol : '');
+    } else {
     const kwA = d.autoW > 1000 ? d.autoW / 1000 : 10.8;
     const rest = Math.max(0, ((doel || 100) - niro) / 100 * 64.8);
     const klaar = new Date(Date.now() + rest / kwA * 3600000);
     $('autolaad').textContent = 'Laadt ' + kwA.toFixed(1).replace('.', ',') + ' kW · ' + (doel || 100) + '% om ca. ' + tijd(klaar);
+    }
   }
   $('vertrek').textContent = d.later ? '07:20' : '06:20';
   $('vertrekK').textContent = 'Auto warm ' + (uur < 7 ? 'vandaag' : 'morgen') + ' om';
@@ -594,7 +601,7 @@ function teken(d) {
       + (bes > 0 && bet > 0 ? '<span class="s">betaald ' + eur(bet) + '</span>' : '') + '</div>';
   };
   const v = al.vandaag;
-  const html = alKaart('Vandaag', v, (v && v.laadt ? 'laadt nu, ' : '') + (v && v.kwh > 0 ? v.van + '% naar ' + v.tot + '%' : ''))
+  const html = alKaart('Vandaag', v, (v && v.laadt ? 'laadt nu' + (v.kw ? ' ca. ' + String(v.kw).replace('.', ',') + ' kW' : '') + ', ' : '') + (v && v.kwh > 0 ? v.van + '% naar ' + v.tot + '%' : ''))
     + alKaart('Deze maand', al.maand, al.maand && al.maand.dagen ? al.maand.dagen + ' dag' + (al.maand.dagen === 1 ? '' : 'en') : '')
     + alKaart('Dit jaar', al.jaar, '');
   document.querySelectorAll('.alfenkaarten').forEach(e => { e.innerHTML = html; });

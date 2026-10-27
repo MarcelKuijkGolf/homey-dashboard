@@ -295,7 +295,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-27-02';
+const VERSIE = '2026-10-27-03';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -449,6 +449,12 @@ function teken(d) {
   $('nirodoel').style.display = doel && doel < 100 ? 'block' : 'none';
   if (doel) $('nirodoel').style.left = 'calc(' + doel + '% - 1px)';
   if (laadt && d.niro != null) {
+    // 27-10-2026 MK bij Alfen: geschat vermogen en vol om uit Laden Alfen
+    const alV = d.alfen && d.alfen.vandaag && d.alfen.vandaag.laadt ? d.alfen.vandaag : null;
+    if (alV) {
+      $('autolaad').textContent = 'Laadt bij Alfen' + (alV.kw ? ' · ca. ' + String(alV.kw).replace('.', ',') + ' kW' : '')
+        + (alV.vol ? ' · ' + alV.doel + '% om ' + alV.vol : '');
+    } else {
     const kwA = d.autoW > 1000 ? d.autoW / 1000 : 10.8;
     const rest = Math.max(0, ((doel || 100) - d.niro) / 100 * 64.8);
     const klaar = new Date(Date.now() + rest / kwA * 3600000);
@@ -456,6 +462,7 @@ function teken(d) {
       + ' kW · ' + (doel || 100) + '% om ca. '
       + klaar.toLocaleTimeString('nl-NL', { hour: '2-digit',
         minute: '2-digit' });
+    }
   }
   // 27-10-2026 MK laden bij Alfen in plaats van laadmodus
   const al = d.alfen || {};
