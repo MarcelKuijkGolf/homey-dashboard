@@ -15,7 +15,8 @@
 <!-- 25-10-2026 MK telefoon gaat naar app.html -->
 <!-- 26-10-2026 MK legenda met oranje kopen -->
 <!-- 27-10-2026 MK laden bij Alfen op de Niro tegel -->
-<!-- 28-10-2026 MK derde grafiek: laden bij Alfen per dag --><style>
+<!-- 28-10-2026 MK derde grafiek: laden bij Alfen per dag -->
+<!-- 28-10-2026 MK Kleine hal naast Boven --><style>
   :root {
     --bg: #0d1117;
     --tile: #161b22;
@@ -142,6 +143,9 @@
   .kamer { display: flex; justify-content: space-between;
     align-items: baseline; }
   .kamer .t { font-size: 40px; font-weight: 700; }
+  .kamers2 { display: flex; gap: 14px; }
+  .kamer2 { flex: 1; min-width: 0; }
+  .kamer2 .t2 { font-size: 34px; font-weight: 700; line-height: 1.1; }
   .kamer .n { color: var(--muted); font-size: 16px; }
   .kamer small { display: block; color: var(--muted); font-size: 14px; }
   .doel { color: var(--warm); }
@@ -256,9 +260,11 @@
       <div class="t" id="woon">-</div>
     </div>
     <div class="rij" id="bovenlijn" style="padding:0"></div>
-    <div class="kamer" id="bovenrij">
-      <div><div class="n">Boven</div></div>
-      <div class="t" id="boven">-</div>
+    <div class="kamers2">
+      <div class="kamer2" id="bovenrij"><div class="n">Boven</div>
+        <div class="t2" id="boven">-</div></div>
+      <div class="kamer2" id="hallrij"><div class="n">Kleine hal</div>
+        <div class="t2" id="kleinehal">-</div></div>
     </div>
   </div>
 
@@ -297,7 +303,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-28-01';
+const VERSIE = '2026-10-28-02';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -358,7 +364,7 @@ function demo() {
         { d: 27, kwh: 17.0, eur: 3.91, g: true },
         { d: 28, kwh: 15.1, eur: 3.47, g: true }] },
     later: false,
-    woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, plan };
+    woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, kleineHal: 12.6, plan };
 }
 
 async function haal() {
@@ -500,8 +506,11 @@ function teken(d) {
     + graad(w.doel) + '</span>' + (w.modus ? ', ' + w.modus : '')
     + (w.weg ? ' (offline)' : '') : '';
   $('boven').textContent = graad(d.boven);
-  $('bovenrij').style.display = d.boven == null ? 'none' : 'flex';
-  $('bovenlijn').style.display = d.boven == null ? 'none' : 'flex';
+  $('kleinehal').textContent = graad(d.kleineHal);
+  $('bovenrij').style.display = d.boven == null ? 'none' : '';
+  $('hallrij').style.display = d.kleineHal == null ? 'none' : '';
+  $('bovenlijn').style.display = d.boven == null && d.kleineHal == null
+    ? 'none' : 'flex';
 
   grafieken();
   const oud = (Date.now() - new Date(d.t).getTime()) / 60000;
