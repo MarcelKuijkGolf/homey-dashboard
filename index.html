@@ -16,7 +16,8 @@
 <!-- 26-10-2026 MK legenda met oranje kopen -->
 <!-- 27-10-2026 MK laden bij Alfen op de Niro tegel -->
 <!-- 28-10-2026 MK derde grafiek: laden bij Alfen per dag -->
-<!-- 28-10-2026 MK Kleine hal naast Boven --><style>
+<!-- 28-10-2026 MK Kleine hal naast Boven -->
+<!-- 29-10-2026 MK hartslag naar Homey: dashboard meldt dat het in beeld staat --><style>
   :root {
     --bg: #0d1117;
     --tile: #161b22;
@@ -303,7 +304,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-28-02';
+const VERSIE = '2026-10-29-01';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -745,6 +746,19 @@ setInterval(() => { scherm = (scherm + 1) % aantalSchermen(); grafieken(); }, WI
 window.addEventListener('resize', () => laatste && teken(laatste));
 ververs();
 setInterval(ververs, VERVERS_MS);
+
+// 29-10-2026 MK hartslag: met &hub=naam in de link meldt de pagina zich
+// elke 5 minuten bij Homey (webhook dashboard_leeft, tag = hub). Zo weet
+// Homey zeker dat het dashboard op die Hub in beeld staat.
+const HUB = P.get('hub') || Q.get('hub');
+function hartslag() {
+  if (!HOMEY || !HUB) return;
+  fetch('https://webhook.homey.app/' + HOMEY + '/dashboard_leeft?tag='
+    + encodeURIComponent(HUB), { mode: 'no-cors', cache: 'no-store' })
+    .catch(() => {});
+}
+hartslag();
+setInterval(hartslag, 5 * 60000);
 
 // elke 5 minuten kijken of er een nieuwe versie op GitHub staat
 async function nieuweVersie() {
