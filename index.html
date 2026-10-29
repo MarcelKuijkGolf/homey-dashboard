@@ -15,6 +15,8 @@
 <!-- 25-10-2026 MK telefoon gaat naar app.html -->
 <!-- 26-10-2026 MK legenda met oranje kopen -->
 <!-- 27-10-2026 MK laden bij Alfen op de Niro tegel -->
+<!-- 29-10-2026 MK foto Niro en status geparkeerd/rijdend -->
+<!-- 29-10-2026 MK foto thuisbatterij, modules kleuren mee met de lading -->
 <!-- 28-10-2026 MK derde grafiek: laden bij Alfen per dag -->
 <!-- 28-10-2026 MK Kleine hal naast Boven -->
 <!-- 29-10-2026 MK hartslag naar Homey: dashboard meldt dat het in beeld staat --><style>
@@ -66,15 +68,24 @@
 
   /* batterij */
   .batt { grid-area: batt; display: flex; gap: 16px; align-items: center; }
-  .ring { width: 150px; height: 150px; flex: none; position: relative; }
+  .ring { width: 132px; height: 132px; flex: none; position: relative; }
   .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .ring .pct {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
   }
-  .ring .pct b { font-size: 42px; font-weight: 700; }
+  .ring .pct b { font-size: 38px; font-weight: 700; }
   .ring .pct span { font-size: 13px; color: var(--muted); }
   .battinfo { min-width: 0; }
+  /* foto thuisbatterij: de modules vullen van onder tot het percentage */
+  .battfoto { position: relative; flex: none; height: 150px;
+    aspect-ratio: 174 / 355; margin-left: -4px; }
+  .battfoto img { width: 100%; height: 100%; display: block;
+    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.5)); }
+  .battfoto i { position: absolute; top: 0; bottom: 0; left: 3%; right: 3%;
+    mix-blend-mode: multiply; opacity: 0.6; border-radius: 2px; }
+  .laadt + .battfoto i, .battfoto.laadt i {
+    animation: puls 1.6s ease-in-out infinite; }
   /* lichtgolf door de ring, zoals bij de auto:
      met de klok mee bij laden, terug bij leveren */
   #stroom { display: none; }
@@ -133,6 +144,22 @@
   @keyframes puls { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   .autolaad { color: var(--verkopen); font-size: 15px; display: none; }
   .auto.laadt .autolaad { display: block; }
+  /* 29-10-2026 MK foto van de Niro rechtsboven, naast het percentage */
+  .auto { position: relative; }
+  .niroimg { position: absolute; top: 12px; right: 14px; width: 50%;
+    max-height: 86px; object-fit: contain; object-position: right top;
+    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.45)); }
+  .weg { position: absolute; top: 101px; right: 22px; width: calc(50% - 16px);
+    height: 3px; border-radius: 2px;
+    opacity: 0; background: repeating-linear-gradient(90deg,
+      var(--muted) 0 18px, transparent 18px 34px); background-size: 34px 3px; }
+  .auto.rijdt .weg { display: none; }
+  .auto.rijdt .niroimg { animation: hobbel 0.9s ease-in-out infinite; }
+  @keyframes hobbel { 0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); } }
+  @keyframes rijden { from { background-position: 0 0; }
+    to { background-position: -34px 0; } }
+  .rijdend { color: var(--verkopen); }
   .rij { display: flex; justify-content: space-between;
     font-size: 17px; padding: 6px 0; border-top: 1px solid var(--line); }
   .rij span:first-child { color: var(--muted); }
@@ -175,10 +202,13 @@
 
   @media (min-width: 1200px) {
     .klok { font-size: 56px; }
-    .ring { width: 190px; height: 190px; }
-    .ring .pct b { font-size: 54px; }
+    .ring { width: 164px; height: 164px; }
+    .battfoto { height: 176px; }
+    .ring .pct b { font-size: 46px; }
     .mini b { font-size: 38px; }
     .auto .soc { font-size: 60px; }
+    .niroimg { max-height: 120px; }
+    .weg { top: 132px; }
     .kamer .t { font-size: 50px; }
   }
 </style>
@@ -219,6 +249,7 @@
       </svg>
       <div class="pct"><b id="soc">-</b><span>thuisbatterij</span></div>
     </div>
+    <div class="battfoto" id="battfoto"><img src="batterij.png" alt="GivEnergy thuisbatterij"><i id="battvul"></i></div>
     <div class="battinfo">
       <div class="label">Plan nu</div>
       <div class="chip" id="chip">-</div>
@@ -246,11 +277,14 @@
       <span class="doelstreep" id="nirodoel"></span></div>
     <div class="autolaad" id="autolaad"></div>
     <div>
+      <div class="rij"><span>Status</span><span id="nirostatus">-</span></div>
       <div class="rij"><span>Lader</span><span id="lader">-</span></div>
       <div class="rij" style="white-space:nowrap"><span id="alfenk">Alfen maand</span><span id="alfen">-</span></div>
       <div class="rij"><span id="vertreksub">Warm om</span>
         <b id="vertrek">06:20</b></div>
     </div>
+    <img class="niroimg" src="niro.png" alt="Kia Niro EV">
+    <div class="weg"></div>
   </div>
 
   <div class="tile klimaat">
@@ -304,7 +338,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-10-29-01';
+const VERSIE = '2026-10-29-02';
 const WISSEL_MS = 15000;
 
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
@@ -354,7 +388,7 @@ function demo() {
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90,
       saldo: -8.8 },
     jaar, jaarNu: String(new Date().getFullYear()), jaarSaldo: 115,
-    lader: 'Laden', laadmodus: 'uit', laaddoel: 80, autoW: 10800,
+    lader: 'Laden', niroStatus: { rijdt: false, plek: 'thuis', tekst: 'Geparkeerd thuis' }, laadmodus: 'uit', laaddoel: 80, autoW: 10800,
     alfen: { vandaag: { kwh: 15.1, bespaard: 3.47, betaald: 0 },
       maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 },
       jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 },
@@ -415,6 +449,13 @@ function teken(d) {
   ring.classList.toggle('verkoopt', verkoopt);
   ring.classList.toggle('levert', d.bW > 100 && !verkoopt);
   $('ringval').style.color = $('ringval').style.stroke;
+  // 29-10-2026 MK modules van de batterijfoto vullen tot het percentage
+  // modules lopen van ca. 92% (onder) tot 13% (boven) van de foto
+  const vulTot = 8 + Math.max(0, Math.min(100, d.soc || 0)) * 0.79;
+  const vulKleur = $('ringval').style.stroke || css('--verkopen');
+  $('battvul').style.background = 'linear-gradient(to top, transparent 0 8%, '
+    + vulKleur + ' 8% ' + vulTot + '%, transparent ' + vulTot + '%)';
+  $('battfoto').classList.toggle('laadt', d.bW < -100);
 
   // net: kopen of verkopen
   if (d.gW > 100) {
@@ -459,6 +500,11 @@ function teken(d) {
   $('nirobar').style.background = d.niro < 40 ? css('--kopen')
     : css('--verkopen');
   $('lader').textContent = d.lader || '-';
+  // 29-10-2026 MK geparkeerd of rijdend
+  const ns = d.niroStatus || null;
+  $('nirostatus').textContent = ns ? ns.tekst : '-';
+  $('nirostatus').className = ns && ns.rijdt ? 'rijdend' : '';
+  document.querySelector('.auto').classList.toggle('rijdt', !!(ns && ns.rijdt));
   // laden: bewegende balk, doel en verwachte tijd vol
   const laadt = d.lader === 'Laden';
   document.querySelector('.auto').classList.toggle('laadt', laadt);

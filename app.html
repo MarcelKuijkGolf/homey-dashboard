@@ -123,6 +123,15 @@ main{min-width:0}
 
 /* auto */
 .autokaart{display:grid;gap:14px}
+.niroimg{display:block;width:100%;max-width:420px;margin:0 auto -6px;filter:drop-shadow(0 10px 12px rgba(0,0,0,.35))}
+.niroimg.klein{max-width:220px;margin:4px auto -4px}
+.rijdend{color:var(--verkopen)}
+.ringrij{position:relative;display:flex;align-items:center;justify-content:center;gap:20px}
+.battfoto{position:relative;flex:none;height:150px;aspect-ratio:174/355}
+.battfoto img{display:block;width:100%;height:100%;filter:drop-shadow(0 10px 12px rgba(0,0,0,.45))}
+.battfoto i{position:absolute;top:0;bottom:0;left:3%;right:3%;mix-blend-mode:multiply;opacity:.6;border-radius:2px}
+.battfoto.laadt i{animation:battpuls 1.6s ease-in-out infinite}
+@keyframes battpuls{0%,100%{opacity:.6}50%{opacity:.3}}
 .autokop{display:flex;justify-content:space-between;align-items:end;gap:12px}
 .autokop .soc{font-family:var(--f-display);font-size:3.4rem;font-weight:800;line-height:1}
 .bliksem{display:none;color:var(--warm);font-size:.55em;vertical-align:.4em;margin-left:6px;animation:puls 1.2s ease-in-out infinite}
@@ -243,6 +252,7 @@ main{min-width:0}
       </div>
       <div class="alarmkaart" id="alarm" hidden>Thuisbatterij heeft geen net. Kijk in de meterkast bij groep Thuisbatterij.</div>
       <div class="hero">
+        <div class="ringrij">
         <div class="ring" id="ring">
           <svg viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12"/>
@@ -251,6 +261,8 @@ main{min-width:0}
             <circle id="stroom" cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="12" stroke-linecap="round" stroke-dasharray="45 281.7" mask="url(#vulmask)"/>
           </svg>
           <div class="midden"><b id="soc">-</b><span>thuisbatterij</span></div>
+        </div>
+        <div class="battfoto" id="battfoto"><img src="batterij.png" alt="GivEnergy thuisbatterij"><i id="battvul"></i></div>
         </div>
         <div class="hero-tekst">
           <div class="eyebrow" style="color:#d6cff5">Plan nu</div>
@@ -274,6 +286,7 @@ main{min-width:0}
         <a class="paneel" href="#auto" style="text-decoration:none;color:inherit">
           <div class="paneel-kop"><h2>Niro</h2><span class="muted small" id="niroKortStatus"></span></div>
           <div class="autokaart" id="niroKort">
+            <img class="niroimg klein" src="niro.png" alt="Kia Niro EV">
             <div class="autokop"><div class="soc" style="font-size:2.4rem"><span id="niroKortSoc">-</span><span class="bliksem">&#9889;</span></div><span class="muted small" id="niroKortDoel"></span></div>
             <div class="bar"><i id="niroKortBar" style="width:0"></i></div>
             <div class="alfenkort" id="niroKortAlfen"></div>
@@ -300,6 +313,7 @@ main{min-width:0}
     <section class="view" data-view="auto" hidden>
       <div class="vkop"><div><div class="eyebrow">Kia Niro</div><h1>Auto</h1></div></div>
       <div class="paneel autokaart" id="auto">
+        <img class="niroimg" src="niro.png" alt="Kia Niro EV">
         <div class="autokop">
           <div class="soc"><span id="niroSoc">-</span><span class="bliksem">&#9889;</span></div>
           <div class="muted" id="lader">-</div>
@@ -308,6 +322,7 @@ main{min-width:0}
         <div style="height:10px"></div>
         <div class="autolaad" id="autolaad"></div>
         <div class="rijen">
+          <div class="rij"><span>Status</span><b id="niroStatus">-</b></div>
           <div class="rij"><span>Laaddoel</span><b id="laaddoel">-</b></div>
           <div class="rij"><span>Laadmodus</span><b id="laadmodus">-</b></div>
           <div class="rij"><span id="vertrekK">Auto warm om</span><b id="vertrek">-</b></div>
@@ -372,7 +387,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-10-28-a7';
+const VERSIE = '2026-10-29-a1';
 const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
@@ -444,7 +459,7 @@ function demo() {
     advies: 'Inkopen (€ 0,16) | 15:00 Eco', sturing: true, sturingTekst: 'Inkopen 12:00-15:00 tot 94%',
     prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
-    jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', laadmodus: 'prijs', laaddoel: 100,
+    jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', niroStatus: { rijdt: false, plek: 'bij Alfen', tekst: 'Geparkeerd bij Alfen' }, laadmodus: 'prijs', laaddoel: 100,
     autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true, kw: 9.4, vol: '09:55', doel: 80 }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, kleineHal: 12.6, plan };
 }
 async function haal() {
@@ -502,6 +517,11 @@ function teken(d) {
   const verkoopt = d.bW > 100 && d.gW > 100;
   const kleur = d.bW < -100 ? css('--verkopen') : verkoopt ? css('--leeg') : css('--kopen');
   $('ringval').style.stroke = kleur; $('ringval').style.color = kleur;
+  // 29-10-2026 MK modules van de batterijfoto vullen tot het percentage
+  const vulTot = 8 + Math.max(0, Math.min(100, soc)) * 0.79;
+  $('battvul').style.background = 'linear-gradient(to top, transparent 0 8%, '
+    + kleur + ' 8% ' + vulTot + '%, transparent ' + vulTot + '%)';
+  $('battfoto').classList.toggle('laadt', d.bW < -100);
   const ring = $('ring');
   ring.classList.toggle('laadt', d.bW < -100);
   ring.classList.toggle('verkoopt', verkoopt);
@@ -549,7 +569,12 @@ function teken(d) {
   $('niroSoc').textContent = $('niroKortSoc').textContent = niro != null ? niro + '%' : '-';
   $('niroBar').style.width = $('niroKortBar').style.width = (niro || 0) + '%';
   $('niroBar').style.background = $('niroKortBar').style.background = barKleur;
-  $('lader').textContent = $('niroKortStatus').textContent = d.lader || '-';
+  $('lader').textContent = d.lader || '-';
+  // 29-10-2026 MK geparkeerd of rijdend
+  const ns = d.niroStatus || null;
+  $('niroStatus').textContent = ns ? ns.tekst + (ns.rijdt && ns.sinds ? ' (sinds ' + ns.sinds + ')' : '') : '-';
+  $('niroStatus').className = ns && ns.rijdt ? 'rijdend' : '';
+  $('niroKortStatus').textContent = (ns ? ns.tekst + ' · ' : '') + (d.lader || '-');
   $('niroKortDoel').textContent = doel ? 'doel ' + doel + '%' : '';
   $('niroDoel').style.display = $('niroDoelT').style.display = doel ? 'block' : 'none';
   if (doel) {
