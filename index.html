@@ -767,7 +767,11 @@ function grafieken() {
       + ')">&nbsp;' + (d.maand ? eur(d.maand.saldo) : '-')
       + '</b>&nbsp;&nbsp;dit jaar <b style="color:var('
       + (d.jaarSaldo >= 0 ? '--verkopen' : '--kopen') + ')">&nbsp;'
-      + (d.jaarSaldo != null ? eur(d.jaarSaldo) : '-') + '</b>';
+      + (d.jaarSaldo != null ? eur(d.jaarSaldo) : '-') + '</b>'
+      // 29-10-2026 MK Tibber-som van deze maand, zodat de getallen kloppen
+      + (d.tibber ? '<br><small style="color:var(--muted);font-size:12px">Tibber: '
+        + eur(d.tibber.kopen) + ' kopen − ' + eur(d.tibber.verkopen)
+        + ' verkopen = ' + eur(d.tibber.saldo) + '</small>' : '');
     saldoGrafiek(d);
   }
   if (scherm === 2) {
