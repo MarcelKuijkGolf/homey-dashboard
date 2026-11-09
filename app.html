@@ -388,7 +388,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-10-29-a1';
+const VERSIE = '2026-11-09-a1';
 const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
@@ -809,6 +809,19 @@ $('ontkoppel').addEventListener('click', () => {
 });
 if (koppeling) start(); else $('koppel').hidden = false;
 setInterval(ververs, VERVERS_MS);
+
+// 09-11-2026 MK nieuwe versie op GitHub: vanzelf herladen, bij openen
+// van de app en elke 5 minuten. Alleen naar een NIEUWERE versie.
+async function nieuweVersie() {
+  if (location.protocol === 'file:') return;
+  try {
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    const m = (await r.text()).match(/const VERSIE = '([^']+)'/);
+    if (m && m[1] > VERSIE) location.reload();
+  } catch (e) { /* volgende keer */ }
+}
+setInterval(nieuweVersie, 5 * 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) nieuweVersie(); });
 
 // offline werken en sneller openen
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
