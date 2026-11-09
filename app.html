@@ -22,7 +22,7 @@
   --bg:#0b0e22; --paper:#151938; --paper2:#1c2150; --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
   --ink:#eef0ff; --muted:#a3a8d0; --dim:#6f75a3;
   --accent:#ffa23a; --accent2:#ff7a2a;
-  --laden:#5b8cff; --verkopen:#4ade9b; --eco:#8a90b8; --vast:#ffcc5c; --kopen:#ff9a4a; --leeg:#ff6b7a; --warm:#ffcc5c;
+  --laden:#5b8cff; --verkopen:#4ade9b; --eco:#8a90b8; --vast:#ffcc5c; --kopen:#ff9a4a; --leeg:#ff6b7a; --warm:#ffcc5c; --zon:#c6e94b;
   --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
   --f-num:"JetBrains Mono",ui-monospace,Consolas,monospace;
@@ -393,9 +393,10 @@ const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
 
-const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco', H: '--vast', X: '--kopen' };
-const NAAM = { L: 'Inkopen', V: 'Verkopen', E: 'Eco', H: 'Sparen', X: 'Kopen' };
-const UITLEG = { L: 'laden van het net', V: 'stroom verkopen', E: 'batterij voedt het huis', H: 'batterij vasthouden', X: 'huis koopt van het net' };
+// 09-11-2026 MK Z = eigen zon: batterij laadt met zelf opgewekte stroom
+const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco', Z: '--zon', H: '--vast', X: '--kopen' };
+const NAAM = { L: 'Inkopen', V: 'Verkopen', E: 'Eco', Z: 'Eigen zon', H: 'Sparen', X: 'Kopen' };
+const UITLEG = { L: 'laden van het net', V: 'stroom verkopen', E: 'batterij voedt het huis', Z: 'batterij laadt met eigen zonnestroom', H: 'batterij vasthouden', X: 'huis koopt van het net' };
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const eur = v => (v < 0 ? '- ' : '') + '€ ' + Math.abs(Number(v)).toFixed(2).replace('.', ',');
@@ -736,7 +737,7 @@ function prijsGrafiek(planIn) {
   s += '<line x1="' + xn + '" x2="' + xn + '" y1="' + (boven - 6) + '" y2="' + (H - onder) + '" stroke="#fff" stroke-width="2"/>'
     + '<text x="' + (xn + 4) + '" y="' + (boven - 8) + '" fill="#fff" font-size="10" font-weight="700">nu</text>';
   svg.innerHTML = s;
-  $('legenda').innerHTML = ['L', 'V', 'E', 'H', 'X'].map(k => '<span><i style="background:var(' + KLEUR[k] + ')"></i>' + (k === 'X' ? 'Kopen, batterij leeg' : NAAM[k]) + '</span>').join('');
+  $('legenda').innerHTML = ['L', 'V', 'E', 'Z', 'H', 'X'].map(k => '<span><i style="background:var(' + KLEUR[k] + ')"></i>' + (k === 'X' ? 'Kopen, batterij leeg' : NAAM[k]) + '</span>').join('');
 }
 function maandGrafiek(j) {
   const svg = $('maandGrafiek');

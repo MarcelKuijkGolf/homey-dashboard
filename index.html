@@ -31,6 +31,7 @@
     --verkopen: #3fb950;
     --eco: #6e7681;
     --vast: #d29922;
+    --zon: #c6e94b; /* 09-11-2026 MK eigen zon */
     --leeg: #da3633;
     --warm: #f0b429;
     --kopen: #f0883e;
@@ -344,10 +345,11 @@ const VERVERS_MS = 60000;
 const VERSIE = '2026-10-29-02';
 const WISSEL_MS = 15000;
 
+// 09-11-2026 MK Z = eigen zon: batterij laadt met zelf opgewekte stroom
 const KLEUR = { L: '--laden', V: '--verkopen', E: '--eco',
-  H: '--vast', X: '--kopen' };
+  Z: '--zon', H: '--vast', X: '--kopen' };
 const NAAM = { L: 'Inkopen', V: 'Verkopen', E: 'Eco',
-  H: 'Sparen', X: 'Kopen' };
+  Z: 'Eigen zon', H: 'Sparen', X: 'Kopen' };
 const css = n => getComputedStyle(document.documentElement)
   .getPropertyValue(n).trim();
 const eur = v => (v < 0 ? '- ' : '') + '€ '
@@ -758,7 +760,7 @@ function grafieken() {
   if (scherm === 0) {
     $('charttitel').textContent = 'Stroomprijs en batterijplan';
     // 26-10-2026 MK oranje kopen (batterij leeg) in de legenda
-    $('legenda').innerHTML = ['L', 'V', 'E', 'H', 'X'].map(k =>
+    $('legenda').innerHTML = ['L', 'V', 'E', 'Z', 'H', 'X'].map(k =>
       '<span><i style="background:var(' + KLEUR[k] + ')"></i>'
       + (k === 'X' ? 'kopen, batterij leeg' : NAAM[k].toLowerCase())
       + '</span>').join('');
