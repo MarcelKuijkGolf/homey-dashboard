@@ -358,7 +358,7 @@ main{min-width:0}
       <div class="vkop"><div><div class="eyebrow">Binnen en buiten</div><h1>Huis</h1></div></div>
       <div class="kamers">
         <div class="stat kamer"><span class="k">Woonkamer</span><span class="v" id="woon">-</span><span class="s" id="woonS"></span></div>
-        <div class="stat kamer" id="bovenKaart"><span class="k">Boven</span><span class="v" id="boven">-</span><span class="s">hal boven</span></div>
+        <div class="stat kamer" id="bovenKaart"><span class="k">Gamekamer</span><span class="v" id="boven">-</span><span class="s">sensor hal boven</span></div>
         <div class="stat kamer" id="hallKaart"><span class="k">Kleine hal</span><span class="v" id="kleinehal">-</span><span class="s">beneden</span></div>
         <div class="stat kamer"><span class="k">Buiten</span><span class="v" id="buiten">-</span><span class="s">Dronten</span></div>
       </div>
@@ -388,7 +388,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-11-09-a1';
+const VERSIE = '2026-11-09-a2';
 const VAR_NAAM = 'Dashboard data';
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
@@ -462,7 +462,7 @@ function demo() {
     prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
     jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', niroStatus: { rijdt: false, plek: 'bij Alfen', tekst: 'Geparkeerd bij Alfen' }, laadmodus: 'prijs', laaddoel: 100,
-    autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true, kw: 9.4, vol: '09:55', doel: 80 }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, kleineHal: 12.6, plan };
+    autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true, kw: 9.4, vol: '09:55', doel: 80 }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, woonkamer: { t: 21.2, naam: 'Woonkamer' }, boven: 18.9, kleineHal: 12.6, plan };
 }
 async function haal() {
   if (demoModus || !koppeling) return demo();
@@ -651,7 +651,8 @@ function teken(d) {
 
   // huis
   const w = d.woon || {};
-  $('woon').textContent = graad(w.t);
+  // 09-11-2026 MK woonkamer uit de sensor in de woonkamer, anders de Nest
+  $('woon').textContent = graad(d.woonkamer && d.woonkamer.t != null ? d.woonkamer.t : w.t);
   $('woonS').textContent = w.doel != null ? 'Nest op ' + graad(w.doel) + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
   $('boven').textContent = graad(d.boven);
   $('bovenKaart').hidden = d.boven == null;

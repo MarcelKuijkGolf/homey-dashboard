@@ -300,7 +300,7 @@
     </div>
     <div class="rij" id="bovenlijn" style="padding:0"></div>
     <div class="kamers2">
-      <div class="kamer2" id="bovenrij"><div class="n">Boven</div>
+      <div class="kamer2" id="bovenrij"><div class="n">Gamekamer</div>
         <div class="t2" id="boven">-</div></div>
       <div class="kamer2" id="hallrij"><div class="n">Kleine hal</div>
         <div class="t2" id="kleinehal">-</div></div>
@@ -342,7 +342,7 @@ if (H && H.includes(':')) {
 const VAR_NAAM = P.get('var') || Q.get('var') || 'Dashboard data';
 const VERVERS_MS = 60000;
 // bij elke wijziging ophogen, dan laadt de Nest Hub de nieuwe versie
-const VERSIE = '2026-11-09-01';
+const VERSIE = '2026-11-09-02';
 const WISSEL_MS = 15000;
 
 // 09-11-2026 MK Z = eigen zon: batterij laadt met zelf opgewekte stroom
@@ -404,7 +404,7 @@ function demo() {
         { d: 27, kwh: 17.0, eur: 3.91, g: true },
         { d: 28, kwh: 15.1, eur: 3.47, g: true }] },
     later: false,
-    woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, boven: 18.9, kleineHal: 12.6, plan };
+    woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, woonkamer: { t: 21.2, naam: 'Woonkamer' }, boven: 18.9, kleineHal: 12.6, plan };
 }
 
 async function haal() {
@@ -556,7 +556,9 @@ function teken(d) {
   const graad = v => v == null ? '-'
     : String(Math.round(v * 10) / 10).replace('.', ',') + '°';
   const w = d.woon || {};
-  $('woon').textContent = graad(w.t);
+  // 09-11-2026 MK woonkamer uit de sensor in de woonkamer, anders de Nest
+  $('woon').textContent = graad(d.woonkamer && d.woonkamer.t != null
+    ? d.woonkamer.t : w.t);
   $('woonsub').innerHTML = w.doel != null ? 'Nest op <span class="doel">'
     + graad(w.doel) + '</span>' + (w.modus ? ', ' + w.modus : '')
     + (w.weg ? ' (offline)' : '') : '';
