@@ -275,7 +275,7 @@ main{min-width:0}
       </div>
       <div class="stats">
         <div class="stat"><span class="k" id="netK">Net</span><span class="v" id="net">-</span><span class="s" id="netS"></span></div>
-        <div class="stat"><span class="k">Zon</span><span class="v" id="zon">-</span><span class="s">opwek nu</span></div>
+        <div class="stat"><span class="k">Zon</span><span class="v" id="zon">-</span><span class="s" id="zonS">opwek nu</span></div>
         <div class="stat"><span class="k">Stroom nu</span><span class="v" id="prijs">-</span><span class="s" id="prijsS">per kWh</span></div>
         <a class="stat" href="#geld"><span class="k" id="dagK">Vandaag</span><span class="v" id="dag">-</span><span class="s" id="dagS"></span></a>
       </div>
@@ -456,7 +456,7 @@ function demo() {
   }
   const jaar = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'].map((m, i) => ({ m,
     s: i < 10 ? [-62, -41, -12, 18, 46, 61, 58, 44, 12, -9][i] : null, nu: i === 9 }));
-  return { t: new Date().toISOString(), soc: 72, bW: -6060, sW: 0, gW: -6500, m: 'L',
+  return { t: new Date().toISOString(), soc: 72, bW: -6060, sW: 0, zon: { vandaag: 3.4, maand: 41.2 }, gW: -6500, m: 'L',
     advies: 'Inkopen (€ 0,16) | 15:00 Eco', sturing: true, sturingTekst: 'Inkopen 12:00-15:00 tot 94%',
     prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
@@ -545,6 +545,11 @@ function teken(d) {
   else { $('netK').textContent = 'Net'; $('net').textContent = 'balans'; $('net').style.color = css('--ink'); $('netS').textContent = 'niets van of naar net'; }
   $('zon').textContent = d.sW > 50 ? kw(d.sW) : '0 kW';
   $('zon').style.color = d.sW > 50 ? css('--warm') : css('--muted');
+  // 09-11-2026 MK opwek vandaag en deze maand onder het vermogen
+  const kwhZ = x => String(x).replace('.', ',') + ' kWh';
+  $('zonS').textContent = d.zon && d.zon.vandaag != null
+    ? 'vandaag ' + kwhZ(d.zon.vandaag) + (d.zon.maand != null ? ' · maand ' + kwhZ(d.zon.maand) : '')
+    : 'opwek nu';
   $('prijs').textContent = d.prijs != null ? eur(d.prijs) : '-';
   if (d.dag) {
     const s = d.dag.saldo;

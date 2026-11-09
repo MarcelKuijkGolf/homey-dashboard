@@ -266,7 +266,7 @@
     <div class="mini"><small id="netlabel">Net</small><b id="net">-</b>
       <small id="netsub"></small></div>
     <div class="mini"><small>Zon</small><b id="zon">-</b>
-      <small>opwek nu</small></div>
+      <small id="zondag">opwek nu</small></div>
     <div class="mini"><small>Batterij</small><b id="bpow">-</b>
       <small id="bsub"></small></div>
     <div class="mini"><small id="dagkop">Vandaag</small><b id="dagsaldo">-</b>
@@ -382,7 +382,7 @@ function demo() {
     'okt','nov','dec'].map((m, i) => ({ m,
       s: i < 10 ? [-62, -41, -12, 18, 46, 61, 58, 44, 12, -9][i] : null,
       nu: i === 9 }));
-  return { t: new Date().toISOString(), soc: 87, bW: 450, sW: 0,
+  return { t: new Date().toISOString(), soc: 87, bW: 450, sW: 0, zon: { vandaag: 3.4, maand: 41.2 },
     gW: -20, m: 'E', advies: 'Eco (€ 0,24) | 23:00 Sparen',
     sturing: true, sturingTekst: 'Eco',
     prijs: 0.24, temp: 10.4, niro: 62,
@@ -479,6 +479,9 @@ function teken(d) {
   }
   $('zon').textContent = d.sW > 50 ? kw(d.sW) : '0 kW';
   $('zon').style.color = d.sW > 50 ? css('--warm') : css('--muted');
+  // 09-11-2026 MK opwek vandaag onder het vermogen
+  $('zondag').textContent = d.zon && d.zon.vandaag != null
+    ? 'vandaag ' + String(d.zon.vandaag).replace('.', ',') + ' kWh' : 'opwek nu';
   $('bpow').textContent = Math.abs(d.bW) < 100 ? 'rust' : kw(d.bW);
   $('bsub').textContent = d.bW > 100 ? 'levert stroom'
     : d.bW < -100 ? 'laden' : '';
