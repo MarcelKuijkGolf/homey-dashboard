@@ -806,18 +806,27 @@ function maandGrafiek(j) {
 
 // ---------- verversen ----------
 let bezig = false;
+// 13-11-2026 MK verversen geeft terugkoppeling: het rondje draait minimaal een halve seconde,
+// en bij gelijke gegevens staat er "geen nieuwe gegevens" bij de leeftijd
 async function ververs() {
   if (bezig) return;
   bezig = true;
+  const start = Date.now();
+  const vorigT = laatste ? laatste.t : null;
   document.querySelectorAll('.vknop').forEach(b => b.classList.add('draait'));
   try {
     laatste = await haal();
     teken(laatste);
+    if (vorigT && vorigT === laatste.t) {
+      $('leeftijd').textContent = 'geen nieuwe gegevens';
+      setTimeout(() => laatste && teken(laatste), 3000);
+    }
   } catch (e) {
     $('melding').textContent = 'Geen verbinding: ' + e.message;
   } finally {
     bezig = false;
-    document.querySelectorAll('.vknop').forEach(b => b.classList.remove('draait'));
+    setTimeout(() => document.querySelectorAll('.vknop').forEach(b => b.classList.remove('draait')),
+      Math.max(0, 500 - (Date.now() - start)));
   }
 }
 document.querySelectorAll('.vknop').forEach(b => b.addEventListener('click', ververs));
