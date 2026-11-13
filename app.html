@@ -118,6 +118,8 @@ main{min-width:0}
 
 /* grafieken */
 .grafiek{width:100%;height:220px;display:block}
+.legenda-m{display:flex;gap:14px;margin-top:4px}
+.legenda-m i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .legenda{display:flex;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--muted)}
 .legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 
@@ -293,6 +295,11 @@ main{min-width:0}
             <div class="alfenkort" id="niroKortAlfen"></div>
           </div>
         </a>
+      </div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2>Zon per dag</h2><span class="muted small">kWh</span></div>
+        <svg class="grafiek" id="zonGrafiek" preserveAspectRatio="none"></svg>
+        <div class="legenda-m muted small"><span><i style="background:var(--muted);opacity:.4"></i> verwacht</span> <span><i style="background:var(--zon)"></i> opgewekt</span></div>
       </div>
     </section>
 
@@ -684,6 +691,35 @@ function tekenGrafieken() {
   const d = laatste || {};
   if (!$('prijsGrafiek').closest('[hidden]')) prijsGrafiek(d.plan || []);
   if (!$('maandGrafiek').closest('[hidden]')) maandGrafiek(d.jaar || []);
+  if (!$('zonGrafiek').closest('[hidden]')) zonGrafiek(d.zonDagen || []);
+}
+
+// 13-11-2026 MK zon per dag: verwacht (gedempt) naast opgewekt
+function zonGrafiek(dagen) {
+  const svg = $('zonGrafiek');
+  const [W, H] = maat(svg);
+  if (!dagen.length) { svg.innerHTML = ''; return; }
+  const onder = 26, boven = 18, L = 6, R = 6;
+  const max = Math.max(1, ...dagen.map(x => Math.max(x.v || 0, x.e || 0))) * 1.15;
+  const y = v => boven + (H - onder - boven) * (1 - v / max);
+  const bw = (W - L - R) / dagen.length;
+  let s = '<line x1="0" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" style="stroke:var(--line2)"/>';
+  dagen.forEach((x, i) => {
+    const groep = bw * 0.72;
+    const staaf = groep / 2 - 2;
+    const x0 = L + i * bw + (bw - groep) / 2;
+    [[x.v, 'fill:var(--muted);fill-opacity:.4'], [x.e, 'fill:var(--zon)']].forEach(([v, stijl], j) => {
+      if (typeof v !== 'number') return;
+      s += '<rect x="' + (x0 + j * (staaf + 4)) + '" y="' + y(v) + '" width="' + staaf
+        + '" height="' + Math.max(2, y(0) - y(v)) + '" rx="4" style="' + stijl + '"/>';
+      s += '<text x="' + (x0 + j * (staaf + 4) + staaf / 2) + '" y="' + (y(v) - 4)
+        + '" text-anchor="middle" style="fill:var(--muted);font-size:11px">'
+        + String(Math.round(v * 10) / 10).replace('.', ',') + '</text>';
+    });
+    s += '<text x="' + (L + i * bw + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" style="fill:'
+      + (x.vandaag ? 'var(--ink)' : 'var(--muted)') + ';font-size:12px;font-weight:' + (x.vandaag ? 700 : 400) + '">' + x.d + '</text>';
+  });
+  svg.innerHTML = s;
 }
 function prijsGrafiek(planIn) {
   const svg = $('prijsGrafiek');
