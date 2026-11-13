@@ -311,11 +311,12 @@
     <div class="chartkop">
       <div class="label" id="charttitel">Stroomprijs en batterijplan</div>
       <div class="legenda" id="legenda"></div>
-      <div class="stip"><i id="stip0" class="aan"></i><i id="stip1"></i><i id="stip2"></i></div>
+      <div class="stip"><i id="stip0" class="aan"></i><i id="stip1"></i><i id="stip2"></i><i id="stip3"></i></div>
     </div>
     <svg id="g0" class="grafiek aan" preserveAspectRatio="none"></svg>
     <svg id="g1" class="grafiek" preserveAspectRatio="none"></svg>
     <svg id="g2" class="grafiek" preserveAspectRatio="none"></svg>
+    <svg id="g3" class="grafiek" preserveAspectRatio="none"></svg>
   </div>
 </div>
 <div class="alarm" id="alarm">Thuisbatterij heeft geen net. Kijk in de meterkast.</div>
@@ -393,6 +394,9 @@ function demo() {
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90,
       saldo: -8.8 },
     jaar, jaarNu: String(new Date().getFullYear()), jaarSaldo: 115,
+    zonDagen: [{ d: '09-11', v: 17.5, e: 5.1 }, { d: '10-11', v: 17.6, e: 6.9 },
+      { d: '11-11', v: 8, e: 2.6 }, { d: '12-11', v: 13.2, e: 11.3 },
+      { d: '13-11', v: 15.4, e: 3.4, vandaag: true }],
     lader: 'Laden', niroStatus: { rijdt: false, plek: 'thuis', tekst: 'Geparkeerd thuis' }, laadmodus: 'uit', laaddoel: 80, autoW: 10800,
     alfen: { vandaag: { kwh: 15.1, bespaard: 3.47, betaald: 0 },
       maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 },
@@ -743,21 +747,67 @@ function alfenGrafiek(al) {
   svg.innerHTML = s;
 }
 
+// ---------- grafiek 4: zon per dag, verwacht tegenover opgewekt ----------
+// 13-11-2026 MK zon verwacht (zon_voorspeld) naast wat er echt opgewekt is (zon_dagen)
+function zonGrafiek(dagen) {
+  const svg = $('g3');
+  const [W, Hh] = maat(svg);
+  if (!dagen || !dagen.length) {
+    svg.innerHTML = '<text x="' + W / 2 + '" y="' + Hh / 2 + '" fill="'
+      + css('--muted') + '" font-size="16" text-anchor="middle">'
+      + 'Zon per dag nog niet beschikbaar</text>';
+    return;
+  }
+  const onder = 22, boven = 22;
+  const n = Math.max(dagen.length, 8);
+  const bw = W / n;
+  const max = Math.max(1, ...dagen.map(x => Math.max(x.v || 0, x.e || 0))) * 1.15;
+  const y = v => boven + (Hh - onder - boven) * (1 - v / max);
+  let s = '<line x1="0" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0)
+    + '" stroke="' + css('--line') + '"/>';
+  const vandaagD = dagen.find(x => x.vandaag);
+  dagen.forEach((x, i) => {
+    const groep = bw * 0.7;
+    const staaf = groep / 2 - 2;
+    const x0 = i * bw + (bw - groep) / 2;
+    const delen = [[x.v, css('--muted'), 0.4], [x.e, css('--zon'), 1]];
+    delen.forEach(([v, kl, op], j) => {
+      if (typeof v !== 'number') return;
+      const sx = x0 + j * (staaf + 4);
+      s += '<rect x="' + sx + '" y="' + y(v) + '" width="' + staaf
+        + '" height="' + Math.max(2, y(0) - y(v)) + '" rx="4" fill="' + kl
+        + '" fill-opacity="' + op + '"/>';
+      s += '<text x="' + (sx + staaf / 2) + '" y="' + (y(v) - 5) + '" fill="'
+        + css('--muted') + '" font-size="11" text-anchor="middle">'
+        + String(Math.round(v * 10) / 10).replace('.', ',') + '</text>';
+    });
+    s += '<text x="' + (i * bw + bw / 2) + '" y="' + (Hh - 5) + '" fill="'
+      + css(x.vandaag ? '--text' : '--muted') + '" font-size="12"'
+      + ' text-anchor="middle"' + (x.vandaag ? ' font-weight="700"' : '')
+      + '>' + x.d + '</text>';
+  });
+  svg.innerHTML = s;
+}
+
 // ---------- wisselen tussen de grafieken ----------
 let scherm = 0;
 let laatste = null;
 // 28-10-2026 MK Alfen scherm alleen als er dit jaar bij Alfen geladen is
-const aantalSchermen = () => (laatste && laatste.alfen && laatste.alfen.jaar
-  && laatste.alfen.jaar.kwh > 0) ? 3 : 2;
+// 13-11-2026 MK zonscherm alleen als het script zon per dag meestuurt
+function schermenLijst() {
+  const l = [0, 1];
+  if (laatste && laatste.alfen && laatste.alfen.jaar && laatste.alfen.jaar.kwh > 0) l.push(2);
+  if (laatste && laatste.zonDagen && laatste.zonDagen.length) l.push(3);
+  return l;
+}
+const aantalSchermen = () => schermenLijst().length;
 function grafieken() {
-  if (scherm >= aantalSchermen()) scherm = 0;
-  $('g0').classList.toggle('aan', scherm === 0);
-  $('g1').classList.toggle('aan', scherm === 1);
-  $('g2').classList.toggle('aan', scherm === 2);
-  $('stip0').classList.toggle('aan', scherm === 0);
-  $('stip1').classList.toggle('aan', scherm === 1);
-  $('stip2').classList.toggle('aan', scherm === 2);
-  $('stip2').style.display = aantalSchermen() === 3 ? '' : 'none';
+  if (!schermenLijst().includes(scherm)) scherm = 0;
+  [0, 1, 2, 3].forEach(k => {
+    $('g' + k).classList.toggle('aan', scherm === k);
+    $('stip' + k).classList.toggle('aan', scherm === k);
+    $('stip' + k).style.display = schermenLijst().includes(k) ? '' : 'none';
+  });
   const d = laatste || {};
   if (scherm === 0) {
     $('charttitel').textContent = 'Stroomprijs en batterijplan';
@@ -781,6 +831,12 @@ function grafieken() {
         + ' verkopen = ' + eur(d.tibber.saldo) + '</small>' : '');
     saldoGrafiek(d);
   }
+  if (scherm === 3) {
+    $('charttitel').textContent = 'Zon per dag';
+    $('legenda').innerHTML = '<span><i style="background:var(--muted);opacity:0.4"></i>verwacht</span>'
+      + '<span><i style="background:var(--zon)"></i>opgewekt</span>';
+    zonGrafiek(d.zonDagen);
+  }
   if (scherm === 2) {
     const al = d.alfen || {};
     const bes = x => (x && x.bespaard) || 0;
@@ -802,7 +858,11 @@ async function ververs() {
     $('melding').textContent = 'Geen verbinding: ' + e.message;
   }
 }
-setInterval(() => { scherm = (scherm + 1) % aantalSchermen(); grafieken(); }, WISSEL_MS);
+setInterval(() => {
+  const l = schermenLijst();
+  scherm = l[(l.indexOf(scherm) + 1) % l.length];
+  grafieken();
+}, WISSEL_MS);
 window.addEventListener('resize', () => laatste && teken(laatste));
 ververs();
 setInterval(ververs, VERVERS_MS);
