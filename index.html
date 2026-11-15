@@ -179,6 +179,12 @@
   .kamer2 { flex: 1; min-width: 0; }
   .kamer2 .t2 { font-size: 34px; font-weight: 700; line-height: 1.1; }
   .kamer .n { color: var(--muted); font-size: 16px; }
+  .cont { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-width: 0; }
+  .cont[hidden] { display: none; }
+  .cont img { height: 36px; width: auto; flex: none; }
+  .cont div { min-width: 0; }
+  .cont small { display: block; color: var(--muted); font-size: 12px; }
+  .cont b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kamer small { display: block; color: var(--muted); font-size: 14px; }
   .doel { color: var(--warm); }
 
@@ -299,6 +305,10 @@
       <div class="t" id="woon">-</div>
     </div>
     <div class="rij" id="bovenlijn" style="padding:0"></div>
+    <div class="cont" id="cont" hidden>
+      <img id="contImg" alt="">
+      <div><small>Aan de weg</small><b id="contNaam">-</b></div>
+    </div>
     <div class="kamers2">
       <div class="kamer2" id="bovenrij"><div class="n">Hal boven</div>
         <div class="t2" id="boven">-</div></div>
@@ -408,7 +418,7 @@ function demo() {
         { d: 27, kwh: 17.0, eur: 3.91, g: true },
         { d: 28, kwh: 15.1, eur: 3.47, g: true }] },
     later: false,
-    woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, woonkamer: { t: 21.2, naam: 'Woonkamer' }, boven: 18.9, kleineHal: 12.6, plan };
+    woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, woonkamer: { t: 21.2, naam: 'Hue motion sensor in de kast', bron: 'sensor' }, boven: 18.9, kleineHal: 12.6, containers: [{ k: 'groen', d: '18-11' }, { k: 'blauw', d: '25-11' }], plan };
 }
 
 async function haal() {
@@ -422,6 +432,25 @@ async function haal() {
   const v = Object.values(vars).find(x => x.name === VAR_NAAM);
   if (!v) throw new Error('Variabele "' + VAR_NAAM + '" niet gevonden');
   return JSON.parse(v.value);
+}
+
+// 15-11-2026 MK containers die aan de weg moeten: de kleur bepaalt de afbeelding
+const CONTAINERS = {
+  groen: ['img/container-groen.webp', 'Groene container'],
+  blauw: ['img/container-blauw.webp', 'Blauwe container'],
+  oranje: ['img/container-oranje.webp', 'Oranje container']
+};
+let contLijst = [], contIdx = 0, contTimer = null;
+function contToon() {
+  const c = contLijst[contIdx];
+  $('contImg').src = CONTAINERS[c.k][0];
+  $('contNaam').textContent = CONTAINERS[c.k][1] + (c.d ? ' · ' + c.d : '')
+    + (contLijst.length > 1 ? ' (' + (contIdx + 1) + '/' + contLijst.length + ')' : '');
+}
+function contVolgende() {
+  if (contLijst.length < 2) return;
+  contIdx = (contIdx + 1) % contLijst.length;
+  contToon();
 }
 
 function teken(d) {
@@ -568,6 +597,15 @@ function teken(d) {
   $('woonsub').innerHTML = viaSensor ? (wk.naam || '') : w.doel != null
     ? 'Nest op <span class="doel">' + graad(w.doel) + '</span>'
       + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
+  // 15-11-2026 MK mini carrousel: welke container de eerstvolgende keer aan de weg moet
+  const cont = Array.isArray(d.containers) ? d.containers.filter(c => CONTAINERS[c.k]) : [];
+  $('cont').hidden = !cont.length;
+  if (cont.length) {
+    contLijst = cont;
+    if (contIdx >= cont.length) contIdx = 0;
+    contToon();
+    if (!contTimer) contTimer = setInterval(contVolgende, 6000);
+  }
   $('boven').textContent = graad(d.boven);
   $('kleinehal').textContent = graad(d.kleineHal);
   $('bovenrij').style.display = d.boven == null ? 'none' : '';
