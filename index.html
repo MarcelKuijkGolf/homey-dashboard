@@ -307,7 +307,13 @@
     <div class="rij" id="bovenlijn" style="padding:0"></div>
     <div class="cont" id="cont" hidden>
       <img id="contImg" alt="">
-      <div><small>Aan de weg</small><b id="contNaam">-</b></div>
+      <svg id="contRust" viewBox="0 0 48 48" width="36" height="36" aria-hidden="true" hidden>
+        <rect x="12" y="15" width="24" height="25" rx="3" fill="var(--muted)" opacity=".45"/>
+        <rect x="9" y="10" width="30" height="5" rx="2" fill="var(--muted)"/>
+        <circle cx="36" cy="36" r="10" fill="var(--zon)"/>
+        <path d="M31 36l3.5 3.5L41 33" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div><small id="contLabel">Aan de weg</small><b id="contNaam">-</b></div>
     </div>
     <div class="kamers2">
       <div class="kamer2" id="bovenrij"><div class="n">Hal boven</div>
@@ -598,10 +604,20 @@ function teken(d) {
     ? 'Nest op <span class="doel">' + graad(w.doel) + '</span>'
       + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
   // 15-11-2026 MK mini carrousel: welke container de eerstvolgende keer aan de weg moet
-  const cont = Array.isArray(d.containers) ? d.containers.filter(c => CONTAINERS[c.k]) : [];
-  $('cont').hidden = !cont.length;
-  if (cont.length) {
-    contLijst = cont;
+  // een lege lijst betekent: er hoeft niets aan de weg; ontbreken de gegevens, dan blijft het blok weg
+  const heeftLijst = Array.isArray(d.containers);
+  const cont = heeftLijst ? d.containers.filter(c => CONTAINERS[c.k]) : [];
+  $('cont').hidden = !heeftLijst;
+  contLijst = cont;
+  if (!cont.length) {
+    $('contImg').hidden = true;
+    $('contRust').hidden = false;
+    $('contLabel').textContent = 'Niets nodig';
+    $('contNaam').textContent = 'Geen container aan de weg';
+  } else {
+    $('contImg').hidden = false;
+    $('contRust').hidden = true;
+    $('contLabel').textContent = 'Aan de weg';
     if (contIdx >= cont.length) contIdx = 0;
     contToon();
     if (!contTimer) contTimer = setInterval(contVolgende, 6000);
