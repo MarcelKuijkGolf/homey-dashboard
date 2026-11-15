@@ -294,7 +294,7 @@
   <div class="tile klimaat">
     <div class="label">Binnen</div>
     <div class="kamer">
-      <div><div class="n">Woonkamer</div>
+      <div><div class="n" id="woonn">Woonkamer</div>
         <small id="woonsub">-</small></div>
       <div class="t" id="woon">-</div>
     </div>
@@ -560,12 +560,14 @@ function teken(d) {
   const graad = v => v == null ? '-'
     : String(Math.round(v * 10) / 10).replace('.', ',') + '°';
   const w = d.woon || {};
-  // 09-11-2026 MK woonkamer uit de sensor in de woonkamer, anders de Nest
-  $('woon').textContent = graad(d.woonkamer && d.woonkamer.t != null
-    ? d.woonkamer.t : w.t);
-  $('woonsub').innerHTML = w.doel != null ? 'Nest op <span class="doel">'
-    + graad(w.doel) + '</span>' + (w.modus ? ', ' + w.modus : '')
-    + (w.weg ? ' (offline)' : '') : '';
+  // 15-11-2026 MK het label volgt de bron: een sensor heet Woonkamer, de thermostaat zelf Thermostaat
+  const wk = d.woonkamer;
+  const viaSensor = wk && wk.t != null && wk.bron !== 'thermostaat';
+  $('woonn').textContent = viaSensor ? 'Woonkamer' : 'Thermostaat';
+  $('woon').textContent = graad(viaSensor ? wk.t : w.t);
+  $('woonsub').innerHTML = viaSensor ? (wk.naam || '') : w.doel != null
+    ? 'Nest op <span class="doel">' + graad(w.doel) + '</span>'
+      + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
   $('boven').textContent = graad(d.boven);
   $('kleinehal').textContent = graad(d.kleineHal);
   $('bovenrij').style.display = d.boven == null ? 'none' : '';

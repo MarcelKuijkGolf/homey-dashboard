@@ -300,6 +300,12 @@ main{min-width:0}
         <div class="paneel-kop"><h2>Zon per dag</h2><span class="muted small">kWh</span></div>
         <svg class="grafiek" id="zonGrafiek" preserveAspectRatio="none"></svg>
         <div class="legenda-m muted small"><span><i style="background:var(--muted);opacity:.4"></i> verwacht</span> <span><i style="background:var(--zon)"></i> opgewekt</span></div>
+        <p class="muted small" id="zonAfw" style="margin:8px 0 0"></p>
+      </div>
+      <div class="paneel">
+        <div class="paneel-kop"><h2>Besparing batterijplan</h2><span class="muted small" id="besTotaal"></span></div>
+        <svg class="grafiek" id="besGrafiek" preserveAspectRatio="none"></svg>
+        <p class="muted small" style="margin:8px 0 0">Verwachte besparing t.o.v. alleen eco, de laatste verwachting van elke dag.</p>
       </div>
     </section>
 
@@ -364,7 +370,7 @@ main{min-width:0}
     <section class="view" data-view="huis" hidden>
       <div class="vkop"><div><div class="eyebrow">Binnen en buiten</div><h1>Huis</h1></div></div>
       <div class="kamers">
-        <div class="stat kamer"><span class="k">Woonkamer</span><span class="v" id="woon">-</span><span class="s" id="woonS"></span></div>
+        <div class="stat kamer"><span class="k" id="woonK">Woonkamer</span><span class="v" id="woon">-</span><span class="s" id="woonS"></span></div>
         <div class="stat kamer" id="bovenKaart"><span class="k">Hal boven</span><span class="v" id="boven">-</span><span class="s">Hue sensor</span></div>
         <div class="stat kamer" id="hallKaart"><span class="k">Kleine hal</span><span class="v" id="kleinehal">-</span><span class="s">beneden</span></div>
         <div class="stat kamer"><span class="k">Buiten</span><span class="v" id="buiten">-</span><span class="s">Dronten</span></div>
@@ -469,7 +475,7 @@ function demo() {
     prijs: 0.16, temp: 10.4, niro: 48, dag: { kopen: 2.12, verkopen: 1.48, kwhIn: 12.4, kwhUit: 5.1, saldo: -0.64 },
     maand: { kopen: 31.2, verkopen: 22.4, kwhIn: 180, kwhUit: 90, saldo: -8.8 }, jaar,
     jaarNu: String(new Date().getFullYear()), jaarSaldo: 115, lader: 'Laden', niroStatus: { rijdt: false, plek: 'bij Alfen', tekst: 'Geparkeerd bij Alfen' }, laadmodus: 'prijs', laaddoel: 100,
-    autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true, kw: 9.4, vol: '09:55', doel: 80 }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, woonkamer: { t: 21.2, naam: 'Woonkamer' }, boven: 18.9, kleineHal: 12.6, plan };
+    autoW: 10800, alfen: { vandaag: { kwh: 15.8, bespaard: 3.63, betaald: 0, van: 47, tot: 69, laadt: true, kw: 9.4, vol: '09:55', doel: 80 }, maand: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 }, jaar: { kwh: 86.4, bespaard: 19.87, betaald: 0, dagen: 6 } }, later: false, vanNet: false, woon: { t: 20.5, doel: 21, modus: 'verwarmen' }, woonkamer: { t: 21.2, naam: 'Hue motion sensor in de kast', bron: 'sensor' }, boven: 18.9, kleineHal: 12.6, zonDagen: [{ d: '09-11', v: 17.5, e: 5.1 }, { d: '10-11', v: 17.6, e: 6.9 }, { d: '11-11', v: 8, e: 2.6 }, { d: '12-11', v: 13.2, e: 11.3 }, { d: '13-11', v: 15.4, e: 7.7, vandaag: true }], besparingDagen: [{ d: '09-11', eur: 0.42 }, { d: '10-11', eur: 0.11 }, { d: '11-11', eur: -0.09 }, { d: '12-11', eur: 0.73 }, { d: '13-11', eur: 0.35, vandaag: true }], plan };
 }
 async function haal() {
   if (demoModus || !koppeling) return demo();
@@ -658,9 +664,18 @@ function teken(d) {
 
   // huis
   const w = d.woon || {};
-  // 09-11-2026 MK woonkamer uit de sensor in de woonkamer, anders de Nest
-  $('woon').textContent = graad(d.woonkamer && d.woonkamer.t != null ? d.woonkamer.t : w.t);
-  $('woonS').textContent = w.doel != null ? 'Nest op ' + graad(w.doel) + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
+  const nest = w.doel != null ? 'Nest op ' + graad(w.doel) + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
+  // 15-11-2026 MK het label volgt de bron: een sensor heet Woonkamer, de thermostaat zelf Thermostaat
+  const wk = d.woonkamer;
+  if (wk && wk.t != null && wk.bron !== 'thermostaat') {
+    $('woonK').textContent = 'Woonkamer';
+    $('woon').textContent = graad(wk.t);
+    $('woonS').textContent = wk.naam || '';
+  } else {
+    $('woonK').textContent = 'Thermostaat';
+    $('woon').textContent = graad(w.t);
+    $('woonS').textContent = nest;
+  }
   $('boven').textContent = graad(d.boven);
   $('bovenKaart').hidden = d.boven == null;
   // 28-10-2026 MK Kleine hal
@@ -692,6 +707,47 @@ function tekenGrafieken() {
   if (!$('prijsGrafiek').closest('[hidden]')) prijsGrafiek(d.plan || []);
   if (!$('maandGrafiek').closest('[hidden]')) maandGrafiek(d.jaar || []);
   if (!$('zonGrafiek').closest('[hidden]')) zonGrafiek(d.zonDagen || []);
+  if (!$('besGrafiek').closest('[hidden]')) besGrafiek(d.besparingDagen || []);
+  zonAfwijking(d.zonDagen || []);
+}
+
+// 15-11-2026 MK afwijking per dag: hoeveel de verwachting ernaast zat (niet de lopende dag)
+function zonAfwijking(dagen) {
+  const delen = dagen.filter(x => !x.vandaag && typeof x.v === 'number' && x.v > 0 && typeof x.e === 'number')
+    .map(x => {
+      const pct = Math.round((x.e - x.v) / x.v * 100);
+      return x.d + ' ' + (pct > 0 ? '+' : '') + pct + '%';
+    });
+  $('zonAfw').textContent = delen.length ? 'Afwijking t.o.v. verwachting: ' + delen.join(' · ') : '';
+}
+
+// 15-11-2026 MK besparing batterijplan per dag, met het totaal van de week erbij
+function besGrafiek(dagen) {
+  const svg = $('besGrafiek');
+  const [W, H] = maat(svg);
+  const komma = v => v.toFixed(2).replace('.', ',');
+  const som = dagen.reduce((a, x) => a + x.eur, 0);
+  $('besTotaal').textContent = dagen.length ? '€ ' + komma(som) + ' totaal' : '';
+  if (!dagen.length) { svg.innerHTML = ''; return; }
+  const onder = 26, boven = 18, L = 6, R = 6;
+  const hi = Math.max(0.5, ...dagen.map(x => x.eur)) * 1.15;
+  const lo = Math.min(0, ...dagen.map(x => x.eur)) * 1.15;
+  const y = v => boven + (H - onder - boven) * (hi - v) / (hi - lo);
+  const bw = (W - L - R) / dagen.length;
+  const staaf = bw * 0.5;
+  let s = '<line x1="0" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" style="stroke:var(--line2)"/>';
+  dagen.forEach((x, i) => {
+    const bx = L + i * bw + (bw - staaf) / 2;
+    const top = Math.min(y(0), y(x.eur));
+    const h = Math.max(2, Math.abs(y(x.eur) - y(0)));
+    s += '<rect x="' + bx + '" y="' + top + '" width="' + staaf + '" height="' + h + '" rx="4" style="fill:'
+      + (x.eur >= 0 ? 'var(--zon)' : 'var(--muted)') + '"/>';
+    s += '<text x="' + (bx + staaf / 2) + '" y="' + (x.eur >= 0 ? top - 4 : y(0) - 6)
+      + '" text-anchor="middle" style="fill:var(--muted);font-size:11px">' + komma(x.eur) + '</text>';
+    s += '<text x="' + (L + i * bw + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" style="fill:'
+      + (x.vandaag ? 'var(--ink)' : 'var(--muted)') + ';font-size:12px;font-weight:' + (x.vandaag ? 700 : 400) + '">' + x.d + '</text>';
+  });
+  svg.innerHTML = s;
 }
 
 // 13-11-2026 MK zon per dag: verwacht (gedempt) naast opgewekt
