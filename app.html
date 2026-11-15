@@ -164,7 +164,8 @@ main{min-width:0}
 /* binnen */
 .kamers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .mcont{display:flex;align-items:center;gap:14px;min-width:0}
-.mcont img{height:52px;width:auto;flex:none}
+.mcontImgs{display:flex;gap:8px;flex:none}
+.mcontImgs img{height:52px;width:auto}
 .mcont b{font-size:1.1rem;font-weight:600;min-width:0}
 .kamer .v{font-size:2.3rem}
 
@@ -342,6 +343,7 @@ main{min-width:0}
           <div class="rij"><span>Status</span><b id="niroStatus">-</b></div>
           <div class="rij"><span>Laaddoel</span><b id="laaddoel">-</b></div>
           <div class="rij"><span>Laadmodus</span><b id="laadmodus">-</b></div>
+          <div class="rij" id="laadVerwachtRij" hidden><span>Laden verwacht</span><b id="laadVerwacht">-</b></div>
           <div class="rij"><span id="vertrekK">Auto warm om</span><b id="vertrek">-</b></div>
         </div>
       </div>
@@ -381,7 +383,7 @@ main{min-width:0}
       <div class="paneel" id="mCont" hidden>
         <div class="paneel-kop"><h2 id="mContLabel">Aan de weg</h2></div>
         <div class="mcont">
-          <img id="mContImg" alt="" hidden>
+          <div class="mcontImgs" id="mContImgs"></div>
           <svg id="mContRust" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" hidden>
             <rect x="12" y="15" width="24" height="25" rx="3" fill="var(--muted)" opacity=".45"/>
             <rect x="9" y="10" width="30" height="5" rx="2" fill="var(--muted)"/>
@@ -521,6 +523,25 @@ function blokken(plan) {
 }
 function vandaagS() { const n = new Date(), p2 = x => String(x).padStart(2, '0');
   return n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-' + p2(n.getDate()); }
+// 15-11-2026 MK schatting: de goedkoopste uren van het plan die nodig zijn om het doel te halen
+// (Niro-accu 64,8 kWh, laden met 10,8 kW); het eerste uur is het verwachte startmoment
+function laadVerwacht(plan, niro, doel) {
+  if (niro == null || !doel || niro >= doel) return null;
+  let nog = (doel - niro) / 100 * 64.8;
+  const uren = plan.filter(h => typeof h.p === 'number' && h.d && h.u).sort((a, b) => a.p - b.p);
+  const gekozen = [];
+  for (const h of uren) {
+    if (nog <= 0) break;
+    gekozen.push(h);
+    nog -= 10.8;
+  }
+  if (nog > 0) return 'niet genoeg uren in het plan';
+  gekozen.sort((a, b) => (a.d + a.u) < (b.d + b.u) ? -1 : 1);
+  const e = gekozen[0];
+  const dag = e.d === vandaagS() ? '' : 'morgen ';
+  return dag + 'ca. ' + e.u + ' · tot ' + doel + '%';
+}
+
 function eindUur(u) { const h = (parseInt(u, 10) + 1) % 24; return String(h).padStart(2, '0') + ':00'; }
 function blokHtml(b, i) {
   const gem = b.pr.reduce((a, c) => a + c, 0) / b.pr.length;
@@ -620,6 +641,11 @@ function teken(d) {
   }
   $('laaddoel').textContent = doel ? doel + '%' : '-';
   $('laadmodus').textContent = d.laadmodus || '-';
+  // 15-11-2026 MK aangesloten, maar nog niet aan het laden: verwacht startmoment op basis van het plan
+  const verwacht = d.lader && d.lader !== 'Niet aangesloten' && !laadt
+    ? laadVerwacht(d.plan || [], niro, doel) : null;
+  $('laadVerwachtRij').hidden = !verwacht;
+  $('laadVerwacht').textContent = verwacht || '';
   if (laadt && niro != null) {
     // 27-10-2026 MK bij Alfen: geschat vermogen en vol om uit Laden Alfen
     const alV = d.alfen && d.alfen.vandaag && d.alfen.vandaag.laadt ? d.alfen.vandaag : null;
@@ -692,12 +718,12 @@ function teken(d) {
   if (heeftLijst) {
     const lijst = d.containers.filter(c => CONTAINERS[c.k]);
     $('mContLabel').textContent = lijst.length ? 'Aan de weg' : 'Niets nodig';
-    $('mContImg').hidden = !lijst.length;
     $('mContRust').hidden = lijst.length > 0;
     $('mContNaam').textContent = lijst.length
       ? lijst.map(c => CONTAINERS[c.k][1]).join(' + ') + ' morgen'
       : 'Geen container aan de weg';
-    if (lijst.length) $('mContImg').src = CONTAINERS[lijst[0].k][0];
+    // elke container die morgen moet, met zijn eigen afbeelding
+    $('mContImgs').innerHTML = lijst.map(c => '<img src="' + CONTAINERS[c.k][0] + '" alt="' + CONTAINERS[c.k][1] + '">').join('');
   }
   // 15-11-2026 MK het label volgt de bron: een sensor heet Woonkamer, de thermostaat zelf Thermostaat
   const wk = d.woonkamer;
