@@ -163,6 +163,9 @@ main{min-width:0}
 
 /* binnen */
 .kamers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mcont{display:flex;align-items:center;gap:14px;min-width:0}
+.mcont img{height:52px;width:auto;flex:none}
+.mcont b{font-size:1.1rem;font-weight:600;min-width:0}
 .kamer .v{font-size:2.3rem}
 
 /* koppelen */
@@ -374,6 +377,19 @@ main{min-width:0}
         <div class="stat kamer" id="bovenKaart"><span class="k">Hal boven</span><span class="v" id="boven">-</span><span class="s">Hue sensor</span></div>
         <div class="stat kamer" id="hallKaart"><span class="k">Kleine hal</span><span class="v" id="kleinehal">-</span><span class="s">beneden</span></div>
         <div class="stat kamer"><span class="k">Buiten</span><span class="v" id="buiten">-</span><span class="s">Dronten</span></div>
+      </div>
+      <div class="paneel" id="mCont" hidden>
+        <div class="paneel-kop"><h2 id="mContLabel">Aan de weg</h2></div>
+        <div class="mcont">
+          <img id="mContImg" alt="" hidden>
+          <svg id="mContRust" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" hidden>
+            <rect x="12" y="15" width="24" height="25" rx="3" fill="var(--muted)" opacity=".45"/>
+            <rect x="9" y="10" width="30" height="5" rx="2" fill="var(--muted)"/>
+            <circle cx="36" cy="36" r="10" fill="var(--zon)"/>
+            <path d="M31 36l3.5 3.5L41 33" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <b id="mContNaam">-</b>
+        </div>
       </div>
       <div class="paneel">
         <h2>Systeem</h2>
@@ -665,6 +681,24 @@ function teken(d) {
   // huis
   const w = d.woon || {};
   const nest = w.doel != null ? 'Nest op ' + graad(w.doel) + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
+  // 15-11-2026 MK containers die morgen aan de weg moeten (zelfde als op het Nest Hub-scherm)
+  const CONTAINERS = {
+    groen: ['img/container-groen.webp', 'GFT'],
+    blauw: ['img/container-blauw.webp', 'Papier'],
+    oranje: ['img/container-oranje.webp', 'PMD']
+  };
+  const heeftLijst = Array.isArray(d.containers);
+  $('mCont').hidden = !heeftLijst;
+  if (heeftLijst) {
+    const lijst = d.containers.filter(c => CONTAINERS[c.k]);
+    $('mContLabel').textContent = lijst.length ? 'Aan de weg' : 'Niets nodig';
+    $('mContImg').hidden = !lijst.length;
+    $('mContRust').hidden = lijst.length > 0;
+    $('mContNaam').textContent = lijst.length
+      ? lijst.map(c => CONTAINERS[c.k][1]).join(' + ') + ' morgen'
+      : 'Geen container aan de weg';
+    if (lijst.length) $('mContImg').src = CONTAINERS[lijst[0].k][0];
+  }
   // 15-11-2026 MK het label volgt de bron: een sensor heet Woonkamer, de thermostaat zelf Thermostaat
   const wk = d.woonkamer;
   if (wk && wk.t != null && wk.bron !== 'thermostaat') {
