@@ -179,9 +179,14 @@
   .kamer2 { flex: 1; min-width: 0; }
   .kamer2 .t2 { font-size: 34px; font-weight: 700; line-height: 1.1; }
   .kamer .n { color: var(--muted); font-size: 16px; }
-  .cont { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-width: 0; }
-  .cont[hidden] { display: none; }
-  .cont img { height: 36px; width: auto; flex: none; }
+  .dia { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .dia[hidden] { display: none; }
+  .stip { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+  .stip[hidden] { display: none; }
+  .stip i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); opacity: .4; }
+  .stip i.on { opacity: 1; background: var(--zon); }
+  .cont { display: flex; align-items: center; gap: 14px; margin-top: 10px; min-width: 0; }
+  .cont img { height: 70px; width: auto; flex: none; }
   .cont div { min-width: 0; }
   .cont small { display: block; color: var(--muted); font-size: 12px; }
   .cont b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -298,29 +303,36 @@
   </div>
 
   <div class="tile klimaat">
-    <div class="label">Binnen</div>
+    <div class="dia" id="diaTemp">
+      <div class="label">Binnen</div>
     <div class="kamer">
       <div><div class="n" id="woonn">Woonkamer</div>
         <small id="woonsub">-</small></div>
       <div class="t" id="woon">-</div>
     </div>
     <div class="rij" id="bovenlijn" style="padding:0"></div>
-    <div class="cont" id="cont" hidden>
-      <img id="contImg" alt="">
-      <svg id="contRust" viewBox="0 0 48 48" width="36" height="36" aria-hidden="true" hidden>
-        <rect x="12" y="15" width="24" height="25" rx="3" fill="var(--muted)" opacity=".45"/>
-        <rect x="9" y="10" width="30" height="5" rx="2" fill="var(--muted)"/>
-        <circle cx="36" cy="36" r="10" fill="var(--zon)"/>
-        <path d="M31 36l3.5 3.5L41 33" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <div><small id="contLabel">Aan de weg</small><b id="contNaam">-</b></div>
-    </div>
+      <div class="rij" id="bovenlijn" style="padding:0"></div>
     <div class="kamers2">
       <div class="kamer2" id="bovenrij"><div class="n">Hal boven</div>
         <div class="t2" id="boven">-</div></div>
       <div class="kamer2" id="hallrij"><div class="n">Kleine hal</div>
         <div class="t2" id="kleinehal">-</div></div>
     </div>
+    </div>
+    <div class="dia" id="diaCont" hidden>
+      <div class="label">Afval · aan de weg</div>
+      <div class="cont" id="cont">
+        <img id="contImg" alt="">
+        <svg id="contRust" viewBox="0 0 48 48" width="56" height="56" aria-hidden="true" hidden>
+          <rect x="12" y="15" width="24" height="25" rx="3" fill="var(--muted)" opacity=".45"/>
+          <rect x="9" y="10" width="30" height="5" rx="2" fill="var(--muted)"/>
+          <circle cx="36" cy="36" r="10" fill="var(--zon)"/>
+          <path d="M31 36l3.5 3.5L41 33" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div><small id="contLabel">Aan de weg</small><b id="contNaam">-</b></div>
+      </div>
+    </div>
+    <div class="stip" id="binStip" hidden><i class="on"></i><i></i></div>
   </div>
 
   <div class="tile chart">
@@ -446,17 +458,17 @@ const CONTAINERS = {
   blauw: ['img/container-blauw.webp', 'Papier'],
   oranje: ['img/container-oranje.webp', 'PMD']
 };
-let contLijst = [], contIdx = 0, contTimer = null;
-function contToon() {
-  const c = contLijst[contIdx];
-  $('contImg').src = CONTAINERS[c.k][0];
-  $('contNaam').textContent = CONTAINERS[c.k][1] + (c.d ? ' · ' + c.d : '')
-    + (contLijst.length > 1 ? ' (' + (contIdx + 1) + '/' + contLijst.length + ')' : '');
+// 15-11-2026 MK Binnen wisselt tussen de temperaturen (dia 0) en de containers (dia 1)
+let binHeeftCont = false, dia = 0, diaTimer = null;
+function diaToon() {
+  $('diaTemp').hidden = dia !== 0;
+  $('diaCont').hidden = dia !== 1;
+  $('binStip').querySelectorAll('i').forEach((s, i) => s.classList.toggle('on', i === dia));
 }
-function contVolgende() {
-  if (contLijst.length < 2) return;
-  contIdx = (contIdx + 1) % contLijst.length;
-  contToon();
+function diaWissel() {
+  if (!binHeeftCont) return;
+  dia = 1 - dia;
+  diaToon();
 }
 
 function teken(d) {
@@ -603,12 +615,12 @@ function teken(d) {
   $('woonsub').innerHTML = viaSensor ? (wk.naam || '') : w.doel != null
     ? 'Nest op <span class="doel">' + graad(w.doel) + '</span>'
       + (w.modus ? ', ' + w.modus : '') + (w.weg ? ' (offline)' : '') : '';
-  // 15-11-2026 MK mini carrousel: welke container de eerstvolgende keer aan de weg moet
-  // een lege lijst betekent: er hoeft niets aan de weg; ontbreken de gegevens, dan blijft het blok weg
+  // 15-11-2026 MK containers die morgen aan de weg moeten; een lege lijst betekent niets nodig,
+  // ontbreken de gegevens, dan is er geen tweede dia
   const heeftLijst = Array.isArray(d.containers);
   const cont = heeftLijst ? d.containers.filter(c => CONTAINERS[c.k]) : [];
-  $('cont').hidden = !heeftLijst;
-  contLijst = cont;
+  binHeeftCont = heeftLijst;
+  $('binStip').hidden = !heeftLijst;
   if (!cont.length) {
     $('contImg').hidden = true;
     $('contRust').hidden = false;
@@ -617,11 +629,14 @@ function teken(d) {
   } else {
     $('contImg').hidden = false;
     $('contRust').hidden = true;
-    $('contLabel').textContent = 'Aan de weg';
-    if (contIdx >= cont.length) contIdx = 0;
-    contToon();
-    if (!contTimer) contTimer = setInterval(contVolgende, 6000);
+    $('contLabel').textContent = 'Morgen aan de weg';
+    $('contImg').src = CONTAINERS[cont[0].k][0];
+    $('contNaam').textContent = cont.map(c => CONTAINERS[c.k][1]).join(' + ') + (cont[0].d ? ' · ' + cont[0].d : '');
   }
+  if (!heeftLijst) dia = 0;
+  diaToon();
+  if (heeftLijst && !diaTimer) diaTimer = setInterval(diaWissel, 8000);
+  if (!heeftLijst && diaTimer) { clearInterval(diaTimer); diaTimer = null; }
   $('boven').textContent = graad(d.boven);
   $('kleinehal').textContent = graad(d.kleineHal);
   $('bovenrij').style.display = d.boven == null ? 'none' : '';
