@@ -429,7 +429,7 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-11-21-a1';
+const VERSIE = '2026-11-21-a2';
 const VAR_NAAM = 'Dashboard data';
 const VAR_REIS = 'Reis vol';   // ja/nee, zet de flows Vol laden voor reis en Reis klaar
 const VERVERS_MS = 60000;
@@ -977,6 +977,11 @@ async function toonReis() {
     const { v } = await haalVariabele(VAR_REIS);
     const aan = v.value === true || String(v.value).toLowerCase() === 'ja';
     $('reisStatus').textContent = aan ? 'Aan, auto laadt vol' : 'Uit';
+    // de knop die de stand al heeft, is niet nodig; de andere is de actieve
+    $('reisAan').disabled = aan;
+    $('reisUit').disabled = !aan;
+    $('reisAan').classList.toggle('primary', !aan);
+    $('reisUit').classList.toggle('primary', aan);
     $('reisFout').textContent = '';
   } catch (e) { $('reisFout').textContent = e.message; }
 }
