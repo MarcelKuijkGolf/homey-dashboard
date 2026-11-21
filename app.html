@@ -330,6 +330,16 @@ main{min-width:0}
     <!-- AUTO -->
     <section class="view" data-view="auto" hidden>
       <div class="vkop"><div><div class="eyebrow">Kia Niro</div><h1>Auto</h1></div></div>
+      <div class="paneel">
+        <h2>Reis</h2>
+        <p class="muted" style="margin:0">Zet de auto vol voor een reis. Daarna laadt hij vol op het goedkoopste moment. Zet het na de reis terug.</p>
+        <div class="rij"><span>Reis vol</span><b id="reisStatus">-</b></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="primary" id="reisAan">Vol laden voor reis</button>
+          <button id="reisUit">Reis klaar</button>
+        </div>
+        <div class="fout" id="reisFout"></div>
+      </div>
       <div class="paneel autokaart" id="auto">
         <img class="niroimg" src="niro.png" alt="Kia Niro EV">
         <div class="autokop">
@@ -419,8 +429,9 @@ main{min-width:0}
 
 <script>
 // 25-10-2026 MK versie, ophogen bij elke wijziging
-const VERSIE = '2026-11-09-a2';
+const VERSIE = '2026-11-21-a1';
 const VAR_NAAM = 'Dashboard data';
+const VAR_REIS = 'Reis vol';   // ja/nee, zet de flows Vol laden voor reis en Reis klaar
 const VERVERS_MS = 60000;
 const OPSLAG = 'energie_koppeling';
 
@@ -949,6 +960,37 @@ document.querySelectorAll('.vknop').forEach(b => b.addEventListener('click', ver
 document.addEventListener('visibilitychange', () => { if (!document.hidden) ververs(); });
 window.addEventListener('resize', () => laatste && tekenGrafieken());
 
+// ---------- reis vol ----------
+async function haalVariabele(naam) {
+  if (!koppeling) throw new Error('niet gekoppeld');
+  const base = 'https://' + koppeling.homey + '.connect.athom.com/api/manager/logic/variable/';
+  const h = { Authorization: 'Bearer ' + koppeling.key, 'Content-Type': 'application/json' };
+  const r = await fetch(base, { headers: h, cache: 'no-store' });
+  if (r.status === 401 || r.status === 403) throw new Error('sleutel geweigerd, koppel opnieuw');
+  if (!r.ok) throw new Error('Homey ' + r.status);
+  const v = Object.values(await r.json()).find(x => x.name === naam);
+  if (!v) throw new Error('variabele "' + naam + '" niet gevonden');
+  return { base, h, v };
+}
+async function toonReis() {
+  try {
+    const { v } = await haalVariabele(VAR_REIS);
+    const aan = v.value === true || String(v.value).toLowerCase() === 'ja';
+    $('reisStatus').textContent = aan ? 'Aan, auto laadt vol' : 'Uit';
+    $('reisFout').textContent = '';
+  } catch (e) { $('reisFout').textContent = e.message; }
+}
+async function zetReis(aan) {
+  try {
+    const { base, h, v } = await haalVariabele(VAR_REIS);
+    const w = await fetch(base + v.id, { method: 'PUT', headers: h, body: JSON.stringify({ value: aan }) });
+    if (!w.ok) throw new Error('Homey ' + w.status);
+    await toonReis();
+  } catch (e) { $('reisFout').textContent = e.message; }
+}
+$('reisAan').addEventListener('click', () => zetReis(true));
+$('reisUit').addEventListener('click', () => zetReis(false));
+
 // ---------- start ----------
 function start() {
   $('koppel').hidden = true;
@@ -957,6 +999,7 @@ function start() {
   if (!location.hash) history.replaceState(null, '', '#nu');
   toon();
   ververs();
+  toonReis();
 }
 $('koppelKnop').addEventListener('click', () => {
   const k = leesLink($('koppelLink').value.trim());
